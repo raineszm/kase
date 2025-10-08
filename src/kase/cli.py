@@ -1,10 +1,14 @@
+from typing_extensions import override
 from textual.app import App
+from textual.driver import Driver
+from textual.types import CSSPathType
 from textual.widgets import Header, Footer, DataTable
 from glob import glob
 import os.path
 import json
 from pathlib import Path
-from typing import Iterable, List, Dict
+from typing import final, cast, Unpack, TypedDict
+from collections.abc import Iterable
 
 
 class CaseRepo:
@@ -12,11 +16,11 @@ class CaseRepo:
         self.case_dir: str = os.path.expanduser(case_dir)
 
     @property
-    def metadata(self) -> List[Path]:
+    def metadata(self) -> list[Path]:
         return [Path(f) for f in glob(f"{self.case_dir}/*/case.json")]
 
     @property
-    def rows(self) -> Iterable[Dict[str, str]]:
+    def rows(self) -> Iterable[dict[str, str]]:
         for meta in self.metadata:
             with meta.open("r") as f:
                 data = json.load(f)
@@ -24,7 +28,8 @@ class CaseRepo:
                 yield data
 
 
-class VimTable(DataTable):
+@final
+class VimTable(DataTable[str]):
     BINDINGS = [
         ("j", "cursor_down", "Move cursor down"),
         ("k", "cursor_up", "Move cursor up"),
@@ -33,24 +38,33 @@ class VimTable(DataTable):
 
     def action_select_row(self):
         case_folder = self.coordinate_to_cell_key(self.cursor_coordinate).row_key.value
-        self.app.exit(case_folder, return_code=0)
+        cast(KaseApp, self.app).exit(case_folder, return_code=0)
 
 
+class AppOptions(TypedDict, total=False):
+    driver_class: type[Driver] | None
+    css_path: CSSPathType | None
+    watch_css: bool
+    ansi_color: bool
+
+
+@final
 class KaseApp(App[str]):
     TITLE = "Your cases!"
 
-    def __init__(self, case_dir: str = "~/cases", **kwargs):
+    def __init__(self, case_dir: str = "~/cases", **kwargs: Unpack[AppOptions]):
         self.repo = CaseRepo(case_dir)
         super().__init__(**kwargs)
 
+    @override
     def compose(self):
         yield Header()
         yield VimTable(cursor_type="row", zebra_stripes=True)
         yield Footer()
 
     def on_mount(self):
-        table = self.query_one(DataTable)
-        table.add_columns("SF", "LP", "Title")
+        table = self.query_one(VimTable)
+        _ = table.add_columns("SF", "LP", "Title")
         for case in self.repo.rows:
             _ = table.add_row(
                 case.get("sf", ""),
