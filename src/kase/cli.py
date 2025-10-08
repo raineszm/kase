@@ -4,19 +4,19 @@ from glob import glob
 import os.path
 import json
 from pathlib import Path
-from typing import Iterable, List
+from typing import Iterable, List, Dict
 
 
 class CaseRepo:
     def __init__(self, case_dir: str):
-        self.case_dir = os.path.expanduser(case_dir)
+        self.case_dir: str = os.path.expanduser(case_dir)
 
     @property
     def metadata(self) -> List[Path]:
         return [Path(f) for f in glob(f"{self.case_dir}/*/case.json")]
 
     @property
-    def rows(self) -> Iterable[dict]:
+    def rows(self) -> Iterable[Dict[str, str]]:
         for meta in self.metadata:
             with meta.open("r") as f:
                 data = json.load(f)
@@ -36,7 +36,7 @@ class VimTable(DataTable):
         self.app.exit(case_folder, return_code=0)
 
 
-class KaseApp(App):
+class KaseApp(App[str]):
     TITLE = "Your cases!"
 
     def __init__(self, case_dir: str = "~/cases", **kwargs):
@@ -52,7 +52,7 @@ class KaseApp(App):
         table = self.query_one(DataTable)
         table.add_columns("SF", "LP", "Title")
         for case in self.repo.rows:
-            table.add_row(
+            _ = table.add_row(
                 case.get("sf", ""),
                 case.get("lp", ""),
                 case.get("title", ""),
@@ -60,7 +60,7 @@ class KaseApp(App):
             )
 
 
-if __name__ == "__main__":
+def main():
     app = KaseApp("~/Programming/Sandbox/casetest/cases")
     result = app.run()
     if result is not None:

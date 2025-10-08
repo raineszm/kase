@@ -5,9 +5,16 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.8"
 dependencies = [
+    "rapidfuzz>=3.9.7",
     "textual>=0.73.0",
     "typer>=0.19.2",
 ]
+
+[project.scripts]
+kase = "kase.cli:main"
+
+[tool.uv]
+package = true
 
 [dependency-groups]
 dev = [
