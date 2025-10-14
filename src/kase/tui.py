@@ -3,6 +3,7 @@ from typing import final, cast, Unpack, override
 from textual.app import App
 from textual.widgets import DataTable, Header, Footer, Input, Markdown
 from textual.containers import Horizontal
+from textual.fuzzy import Matcher
 
 from .cases import CaseRepo
 from .types import AppOptions
@@ -55,16 +56,9 @@ class KaseApp(App[str]):
         yield Footer()
 
     def on_mount(self):
-        table = self.query_one(CaseTable)
-        _ = table.add_columns("SF ID", "LP Bug", "Title", "Description")
+        _ = self.caselist.add_columns("SF ID", "LP Bug", "Title", "Description")
         for case in self.repo.rows:
-            _ = table.add_row(
-                case.get("sf", ""),
-                case.get("lp", ""),
-                case.get("title", ""),
-                case.get("description", ""),
-                key=case["path"],
-            )
+            self._add_row(case)
         self.input.focus()
 
     def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
@@ -74,3 +68,35 @@ class KaseApp(App[str]):
             preview.update("No case selected")
         else:
             preview.update(self.repo.case_preview(case_folder))
+
+    def on_input_changed(self, event: Input.Changed) -> None:
+        self.caselist.clear()
+
+        if event.value == "":
+            for case in self.repo.rows:
+                self._add_row(case)
+            return
+
+        m = Matcher(event.value)
+        for case in self.repo.rows:
+            score = m.match(
+                " ".join(
+                    [
+                        case.get("sf", ""),
+                        case.get("lp", ""),
+                        case.get("title", ""),
+                        case.get("description", ""),
+                    ]
+                )
+            )
+            if score > 0.8:
+                self._add_row(case)
+
+    def _add_row(self, case: dict[str, str]):
+        _ = self.caselist.add_row(
+            case.get("sf", ""),
+            case.get("lp", ""),
+            case.get("title", ""),
+            case.get("description", ""),
+            key=case["path"],
+        )
