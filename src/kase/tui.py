@@ -1,7 +1,8 @@
 from typing import final, cast, Unpack, override
 
 from textual.app import App
-from textual.widgets import DataTable, Header, Footer
+from textual.widgets import DataTable, Header, Footer, Input, Markdown
+from textual.containers import Horizontal
 
 from .cases import CaseRepo
 from .types import AppOptions
@@ -24,6 +25,17 @@ class CaseTable(DataTable[str]):
 class KaseApp(App[str]):
     TITLE = "Your cases!"
     COMMAND_PALETTE_BINDING = "ctrl+shift+p"
+    CSS = """
+    .caselist {
+        width: 1fr;
+        height: 100%;
+    }
+
+    .preview {
+        width: 1fr;
+        height: 100%;
+    }
+    """
 
     def __init__(self, case_dir: str = "~/cases", **kwargs: Unpack[AppOptions]):
         self.repo = CaseRepo(case_dir)
@@ -32,7 +44,13 @@ class KaseApp(App[str]):
     @override
     def compose(self):
         yield Header()
-        yield CaseTable(cursor_type="row", zebra_stripes=True)
+        with Horizontal():
+            self.caselist = CaseTable(
+                cursor_type="row", zebra_stripes=True, classes="caselist"
+            )
+            yield self.caselist
+            yield Markdown(classes="preview")
+        yield Input()
         yield Footer()
 
     def on_mount(self):
@@ -46,3 +64,11 @@ class KaseApp(App[str]):
                 case.get("description", ""),
                 key=case["path"],
             )
+
+    def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
+        case_folder = event.row_key.value
+        preview = self.query_one(Markdown)
+        if case_folder is None:
+            preview.update("No case selected")
+        else:
+            preview.update(self.repo.case_preview(case_folder))

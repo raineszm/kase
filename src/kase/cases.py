@@ -3,6 +3,7 @@ import os
 from collections.abc import Iterable
 from glob import glob
 from pathlib import Path
+import textwrap
 
 
 class CaseRepo:
@@ -16,7 +17,21 @@ class CaseRepo:
     @property
     def rows(self) -> Iterable[dict[str, str]]:
         for meta in self.metadata:
-            with meta.open("r") as f:
-                data = json.load(f)
-                data["path"] = str(meta.parent)
-                yield data
+            yield self._load_meta(meta)
+
+    @staticmethod
+    def _load_meta(meta: Path) -> dict[str, str]:
+        with meta.open("r") as f:
+            data = json.load(f)
+            data["path"] = str(meta.parent)
+            return data
+
+    def case_preview(self, path: str) -> str:
+        meta = Path(path) / "case.json"
+        data = self._load_meta(meta)
+        return textwrap.dedent(
+            """# [{sf}] {title}
+
+            {desc}
+            """.format(**data)
+        )

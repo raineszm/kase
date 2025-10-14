@@ -13,7 +13,7 @@ def query():
     For the cd functionality to work, the shell integration
     must have been set up.
     """
-    app = KaseApp("~/Programming/Sandbox/casetest/cases")
+    app = KaseApp("~/cases")
     result = app.run()
     if result is not None:
         print(result)
