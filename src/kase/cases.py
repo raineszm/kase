@@ -30,8 +30,8 @@ class CaseRepo:
         meta = Path(path) / "case.json"
         data = self._load_meta(meta)
         return textwrap.dedent(
-            """# [{sf}] {title}
+            """
+            # [{sf}] {title}
 
             {desc}
-            """.format(**data)
-        )
+            """).format(**data)

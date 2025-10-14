@@ -50,7 +50,8 @@ class KaseApp(App[str]):
             )
             yield self.caselist
             yield Markdown(classes="preview")
-        yield Input()
+        self.input = Input(placeholder="Filter", compact=True)
+        yield self.input
         yield Footer()
 
     def on_mount(self):
@@ -64,6 +65,7 @@ class KaseApp(App[str]):
                 case.get("description", ""),
                 key=case["path"],
             )
+        self.input.focus()
 
     def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
         case_folder = event.row_key.value
