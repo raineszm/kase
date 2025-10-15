@@ -4,6 +4,7 @@ from textual.app import App
 from textual.widgets import DataTable, Header, Footer, Input, Markdown
 from textual.containers import Horizontal
 from textual.fuzzy import Matcher
+from textual.binding import Binding
 
 from .cases import CaseRepo
 from .types import AppOptions
@@ -11,21 +12,28 @@ from .types import AppOptions
 
 @final
 class CaseTable(DataTable[str]):
-    BINDINGS = [
-        ("ctrl+n", "cursor_down", "Move cursor down"),
-        ("ctrl+p", "cursor_up", "Move cursor up"),
-        ("enter", "select_row", "Select row"),
-    ]
+    @property
+    def selected_case(self) -> str | None:
+        if self.row_count == 0:
+            return
+        return self.coordinate_to_cell_key(self.cursor_coordinate).row_key.value
 
     def action_select_row(self):
-        case_folder = self.coordinate_to_cell_key(self.cursor_coordinate).row_key.value
-        cast(KaseApp, self.app).exit(case_folder, return_code=0)
+        if case_folder := self.selected_case:
+            cast(KaseApp, self.app).exit(case_folder, return_code=0)
 
 
 @final
 class KaseApp(App[str]):
     TITLE = "Your cases!"
     COMMAND_PALETTE_BINDING = "ctrl+shift+p"
+
+    BINDINGS = [
+        Binding("ctrl+n", "cursor_down", "Move cursor down", priority=True),
+        Binding("ctrl+p", "cursor_up", "Move cursor up", priority=True),
+        Binding("enter", "select_row", "Select row", priority=True),
+    ]
+
     CSS = """
     .caselist {
         width: 1fr;
@@ -70,6 +78,7 @@ class KaseApp(App[str]):
             preview.update(self.repo.case_preview(case_folder))
 
     def on_input_changed(self, event: Input.Changed) -> None:
+        selected = self.caselist.selected_case
         self.caselist.clear()
 
         if event.value == "":
@@ -91,6 +100,17 @@ class KaseApp(App[str]):
             )
             if score > 0.8:
                 self._add_row(case)
+                if selected is not None and case["path"] == selected:
+                    self.caselist.move_cursor(row=self.caselist.get_row_index(selected))
+
+    def action_cursor_up(self) -> None:
+        self.caselist.action_cursor_up()
+
+    def action_cursor_down(self) -> None:
+        self.caselist.action_cursor_down()
+
+    def action_select_row(self) -> None:
+        self.caselist.action_select_row()
 
     def _add_row(self, case: dict[str, str]):
         _ = self.caselist.add_row(
