@@ -5,6 +5,16 @@ from glob import glob
 from pathlib import Path
 import textwrap
 
+from pydantic import BaseModel
+
+
+class Case(BaseModel):
+    path: Path
+    title: str
+    desc: str
+    sf: str
+    lp: str = ""
+
 
 class CaseRepo:
     def __init__(self, case_dir: str):
@@ -15,16 +25,15 @@ class CaseRepo:
         return [Path(f) for f in glob(f"{self.case_dir}/*/case.json")]
 
     @property
-    def rows(self) -> Iterable[dict[str, str]]:
+    def cases(self) -> Iterable[Case]:
         for meta in self.metadata:
             yield self._load_meta(meta)
 
     @staticmethod
-    def _load_meta(meta: Path) -> dict[str, str]:
+    def _load_meta(meta: Path) -> Case:
         with meta.open("r") as f:
             data = json.load(f)
-            data["path"] = str(meta.parent)
-            return data
+            return Case(path=meta.parent, **data)
 
     def case_preview(self, path: str) -> str:
         meta = Path(path) / "case.json"
@@ -34,4 +43,4 @@ class CaseRepo:
             # [{sf}] {title}
 
             {desc}
-            """).format(**data)
+            """).format(sf=data.sf, title=data.title, desc=data.desc)
