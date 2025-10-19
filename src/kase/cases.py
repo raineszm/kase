@@ -1,4 +1,5 @@
 import json
+import re
 import os
 from collections.abc import Iterable
 from glob import glob
@@ -15,8 +16,16 @@ class Case(BaseModel):
     sf: str
     lp: str = ""
 
+    def write_metadata(self) -> None:
+        metadata = self.model_dump()
+        path = metadata.pop("path")
+        with (path / "case.json").open("w") as f:
+            json.dump(metadata, f, indent=4)
+
 
 class CaseRepo:
+    TITLE_RE = re.compile(r"^\[(?P<sf>\d+)\] (?P<title>.+)$")
+
     def __init__(self, case_dir: str):
         self.case_dir: str = os.path.expanduser(case_dir)
 
@@ -43,4 +52,24 @@ class CaseRepo:
             # [{sf}] {title}
 
             {desc}
-            """).format(sf=data.sf, title=data.title, desc=data.desc)
+            """
+        ).format(sf=data.sf, title=data.title, desc=data.desc)
+
+    def create_case(self, name: str, lp: str, description: str) -> bool:
+        match = self.TITLE_RE.match(name)
+        if not match:
+            return False
+        sf = match.group("sf")
+        title = match.group("title")
+        path = Path(self.case_dir) / sf
+        case = Case(
+            path=path,
+            sf=sf,
+            title=title,
+            desc=description,
+        )
+        if path.exists():
+            return False
+        path.mkdir()
+        case.write_metadata()
+        return True

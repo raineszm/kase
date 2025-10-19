@@ -1,4 +1,5 @@
 from .tui import KaseApp
+from .init_tui import InitApp
 import typer
 import textwrap
 
@@ -26,7 +27,9 @@ def init():
 
     Creates the directory if it does not exist.
     """
-    pass
+    app = InitApp("~/cases")
+    if result := app.run():
+        print(result)
 
 
 @main.command()
