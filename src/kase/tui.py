@@ -1,9 +1,11 @@
 from typing import final, cast, Unpack, override, Optional
 
+from rapidfuzz.fuzz import partial_ratio
+from rapidfuzz import utils
+
 from textual.app import App
 from textual.widgets import DataTable, Header, Footer, Input, Markdown
 from textual.containers import Horizontal
-from textual.fuzzy import Matcher
 from textual.binding import Binding
 
 from .cases import CaseRepo, Case
@@ -47,7 +49,6 @@ class KaseApp(App[str]):
     """
 
     def __init__(self, case_dir: str = "~/cases", **kwargs: Unpack[AppOptions]):
-
         super().__init__(**kwargs)
 
         self.repo = CaseRepo(case_dir)
@@ -88,16 +89,14 @@ class KaseApp(App[str]):
                 self._add_row(case)
             return
 
-        m = Matcher(event.value)
         for case in self.repo.cases:
-            score = m.match(
-                " ".join(
-                    [
-                        case.sf,
-                        case.lp,
-                        case.title
-                    ]
+            score = (
+                partial_ratio(
+                    " ".join([case.sf, case.lp, case.title]),
+                    event.value,
+                    processor=utils.default_process,
                 )
+                / 100.0
             )
             if score > 0.8:
                 self._add_row(case)
