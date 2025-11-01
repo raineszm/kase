@@ -1,12 +1,11 @@
-from textual.app import App
-from textual.containers import Horizontal
-from textual.widgets import Input, TextArea, Label, Button
-from .types import AppOptions
-
 from typing import Unpack, override
 
+from textual.app import App
+from textual.containers import Horizontal
+from textual.widgets import Button, Input, Label, TextArea
 
-from .cases import CaseRepo
+from ..cases import CaseRepo
+from ..types import AppOptions
 
 
 class InitApp(App[str]):
@@ -29,7 +28,7 @@ class InitApp(App[str]):
         yield TextArea()
         yield Button("Create", variant="primary", flat=True)
 
-    def on_button_pressed(self, _event: Button.Pressed) -> None:
+    def on_button_pressed(self, _event: Button.Pressed):
         name = self.query_one("#case_name_input", Input).value
         lp_bug = self.query_one("#lp_bug_input", Input).value
         description = self.query_one(TextArea).text

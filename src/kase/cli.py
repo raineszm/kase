@@ -1,7 +1,9 @@
-from .tui import KaseApp
-from .init_tui import InitApp
-import typer
 import textwrap
+
+import typer
+
+from .tui.init import InitApp
+from .tui.query import QueryApp
 
 main = typer.Typer()
 
@@ -14,7 +16,7 @@ def query():
     For the cd functionality to work, the shell integration
     must have been set up.
     """
-    app = KaseApp("~/cases")
+    app = QueryApp("~/cases")
     result = app.run()
     if result is not None:
         print(result)

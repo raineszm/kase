@@ -1,15 +1,14 @@
-from typing import final, cast, Unpack, override, Optional
+from typing import Optional, Unpack, cast, final, override
 
-from rapidfuzz.fuzz import partial_ratio
 from rapidfuzz import utils
-
+from rapidfuzz.fuzz import partial_ratio
 from textual.app import App
-from textual.widgets import DataTable, Header, Footer, Input, Markdown
-from textual.containers import Horizontal
 from textual.binding import Binding
+from textual.containers import Horizontal
+from textual.widgets import DataTable, Footer, Header, Input, Markdown
 
-from .cases import CaseRepo, Case
-from .types import AppOptions
+from ..cases import Case, CaseRepo
+from ..types import AppOptions
 
 
 @final
@@ -18,15 +17,17 @@ class CaseTable(DataTable[str]):
     def selected_case(self) -> Optional[str]:
         if self.row_count == 0:
             return None
+        # Typechecker doesn't know that Reactive[T] casts to T
+        # noinspection PyTypeChecker
         return self.coordinate_to_cell_key(self.cursor_coordinate).row_key.value
 
     def action_select_row(self):
         if case_folder := self.selected_case:
-            cast(KaseApp, self.app).exit(case_folder, return_code=0)
+            cast(QueryApp, self.app).exit(case_folder, return_code=0)
 
 
 @final
-class KaseApp(App[str]):
+class QueryApp(App[str]):
     TITLE = "Your cases!"
     COMMAND_PALETTE_BINDING = "ctrl+shift+p"
 
