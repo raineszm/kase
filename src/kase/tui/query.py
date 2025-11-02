@@ -1,3 +1,4 @@
+import asyncio
 from typing import Optional, Unpack, cast, final, override
 
 from rapidfuzz import utils
@@ -42,6 +43,8 @@ class QueryApp(App[str]):
             cursor_type="row", zebra_stripes=True, classes="caselist"
         )
         self.input = Input(placeholder="Filter", compact=True)
+        self.filter_text = None
+        self.update_task = None
 
     @override
     def compose(self):
@@ -54,8 +57,7 @@ class QueryApp(App[str]):
 
     def on_mount(self):
         _ = self.caselist.add_columns("SF ID", "LP Bug", "Title", "Description")
-        for case in self.repo.cases:
-            self._add_row(case)
+        self._reset_table()
         self.input.focus()
 
     def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted):
@@ -66,23 +68,36 @@ class QueryApp(App[str]):
         else:
             preview.update(self.repo.case_preview(case_folder))
 
-    def on_input_changed(self, event: Input.Changed):
+    async def on_input_changed(self, event: Input.Changed):
+        self.filter_text = event.value
+        if self.update_task is None or self.update_task.done():
+            self.update_task = asyncio.create_task(self._update_case_list())
+
+
+    async def _update_case_list(self):
+        await asyncio.sleep(0.1)
         selected = self.selected_case()
         self.caselist.clear()
 
-        if event.value == "":
-            for case in self.repo.cases:
-                self._add_row(case)
-            return
+        if self.filter_text == "":
+            return self._reset_table()
 
+        return self._apply_filter(self.filter_text, selected)
+
+
+    def _reset_table(self):
+        for case in self.repo.cases:
+            self._add_row(case)
+
+    def _apply_filter(self, filter_text: str, selected: str):
         for case in self.repo.cases:
             score = (
-                partial_ratio(
-                    " ".join([case.sf, case.lp, case.title]),
-                    event.value,
-                    processor=utils.default_process,
-                )
-                / 100.0
+                    partial_ratio(
+                        " ".join([case.sf, case.lp, case.title, case.desc]),
+                        filter_text,
+                        processor=utils.default_process,
+                    )
+                    / 100.0
             )
             if score > 0.8:
                 self._add_row(case)
