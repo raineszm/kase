@@ -12,21 +12,6 @@ from ..types import AppOptions
 
 
 @final
-class CaseTable(DataTable[str]):
-    @property
-    def selected_case(self) -> Optional[str]:
-        if self.row_count == 0:
-            return None
-        # Typechecker doesn't know that Reactive[T] casts to T
-        # noinspection PyTypeChecker
-        return self.coordinate_to_cell_key(self.cursor_coordinate).row_key.value
-
-    def action_select_row(self):
-        if case_folder := self.selected_case:
-            cast(QueryApp, self.app).exit(case_folder, return_code=0)
-
-
-@final
 class QueryApp(App[str]):
     TITLE = "Your cases!"
     COMMAND_PALETTE_BINDING = "ctrl+shift+p"
@@ -53,7 +38,7 @@ class QueryApp(App[str]):
         super().__init__(**kwargs)
 
         self.repo = CaseRepo(case_dir)
-        self.caselist = CaseTable(
+        self.caselist = DataTable(
             cursor_type="row", zebra_stripes=True, classes="caselist"
         )
         self.input = Input(placeholder="Filter", compact=True)
@@ -82,7 +67,7 @@ class QueryApp(App[str]):
             preview.update(self.repo.case_preview(case_folder))
 
     def on_input_changed(self, event: Input.Changed):
-        selected = self.caselist.selected_case
+        selected = self.selected_case()
         self.caselist.clear()
 
         if event.value == "":
@@ -103,6 +88,12 @@ class QueryApp(App[str]):
                 self._add_row(case)
                 if selected is not None and str(case.path) == selected:
                     self.caselist.move_cursor(row=self.caselist.get_row_index(selected))
+    def selected_case(self) -> Optional[str]:
+        if self.caselist.row_count == 0:
+            return None
+        # Typechecker doesn't know that Reactive[T] casts to T
+        # noinspection PyTypeChecker
+        return self.caselist.coordinate_to_cell_key(self.caselist.cursor_coordinate).row_key.value
 
     def action_cursor_up(self):
         self.caselist.action_cursor_up()
@@ -111,7 +102,8 @@ class QueryApp(App[str]):
         self.caselist.action_cursor_down()
 
     def action_select_row(self):
-        self.caselist.action_select_row()
+        if case_folder := self.selected_case:
+            cast(QueryApp, self.app).exit(case_folder, return_code=0)
 
     def _add_row(self, case: Case):
         _ = self.caselist.add_row(
