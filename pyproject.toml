@@ -19,6 +19,9 @@ kase = "kase.cli:main"
 [tool.uv]
 package = true
 
+[tool.ruff]
+extend-select = ["I"]
+
 [dependency-groups]
 dev = ["textual-dev>=1.6.1"]
 
