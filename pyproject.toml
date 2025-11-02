@@ -19,7 +19,7 @@ kase = "kase.cli:main"
 [tool.uv]
 package = true
 
-[tool.ruff]
+[tool.ruff.lint]
 extend-select = ["I"]
 
 [dependency-groups]

@@ -88,12 +88,15 @@ class QueryApp(App[str]):
                 self._add_row(case)
                 if selected is not None and str(case.path) == selected:
                     self.caselist.move_cursor(row=self.caselist.get_row_index(selected))
+
     def selected_case(self) -> Optional[str]:
         if self.caselist.row_count == 0:
             return None
         # Typechecker doesn't know that Reactive[T] casts to T
         # noinspection PyTypeChecker
-        return self.caselist.coordinate_to_cell_key(self.caselist.cursor_coordinate).row_key.value
+        return self.caselist.coordinate_to_cell_key(
+            self.caselist.cursor_coordinate
+        ).row_key.value
 
     def action_cursor_up(self):
         self.caselist.action_cursor_up()
