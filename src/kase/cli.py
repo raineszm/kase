@@ -1,4 +1,5 @@
 import textwrap
+from os import environ
 
 import typer
 
@@ -9,14 +10,24 @@ main = typer.Typer()
 
 
 @main.command()
-def query():
+def query(
+    case_dir: str | None = typer.Argument(
+        None,
+        help="Directory containing case files."
+        "Defaults to $CASE_DIR environment variable or ~/cases",
+    ),
+):
     """
     Pop up a fuzzy finder to select a case to cd into.
 
     For the cd functionality to work, the shell integration
     must have been set up.
     """
-    app = QueryApp("~/cases")
+
+    if case_dir is None:
+        case_dir = environ.get("CASE_DIR", "~/cases")
+
+    app = QueryApp(case_dir)
     result = app.run()
     if result is not None:
         print(result)
