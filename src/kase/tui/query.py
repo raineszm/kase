@@ -73,7 +73,6 @@ class QueryApp(App[str]):
         if self.update_task is None or self.update_task.done():
             self.update_task = asyncio.create_task(self._update_case_list())
 
-
     async def _update_case_list(self):
         await asyncio.sleep(0.1)
         selected = self.selected_case()
@@ -84,7 +83,6 @@ class QueryApp(App[str]):
 
         return self._apply_filter(self.filter_text, selected)
 
-
     def _reset_table(self):
         for case in self.repo.cases:
             self._add_row(case)
@@ -92,12 +90,12 @@ class QueryApp(App[str]):
     def _apply_filter(self, filter_text: str, selected: str):
         for case in self.repo.cases:
             score = (
-                    partial_ratio(
-                        " ".join([case.sf, case.lp, case.title, case.desc]),
-                        filter_text,
-                        processor=utils.default_process,
-                    )
-                    / 100.0
+                partial_ratio(
+                    " ".join([case.sf, case.lp, case.title, case.desc]),
+                    filter_text,
+                    processor=utils.default_process,
+                )
+                / 100.0
             )
             if score > 0.8:
                 self._add_row(case)
@@ -120,7 +118,7 @@ class QueryApp(App[str]):
         self.caselist.action_cursor_down()
 
     def action_select_row(self):
-        if case_folder := self.selected_case:
+        if case_folder := self.selected_case():
             cast(QueryApp, self.app).exit(case_folder, return_code=0)
 
     def _add_row(self, case: Case):
