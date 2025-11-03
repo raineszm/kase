@@ -1,5 +1,5 @@
 import asyncio
-from typing import Optional, Unpack, cast, final, override
+from typing import Unpack, cast, final, override
 
 from rapidfuzz import utils
 from rapidfuzz.fuzz import partial_ratio
@@ -39,7 +39,7 @@ class QueryApp(App[str]):
         super().__init__(**kwargs)
 
         self.repo = CaseRepo(case_dir)
-        self.caselist = DataTable(
+        self.caselist = DataTable[str](
             cursor_type="row", zebra_stripes=True, classes="caselist"
         )
         self.input = Input(placeholder="Filter", compact=True)
@@ -58,15 +58,15 @@ class QueryApp(App[str]):
     def on_mount(self):
         _ = self.caselist.add_columns("SF ID", "LP Bug", "Title", "Description")
         self._reset_table()
-        self.input.focus()
+        _ = self.input.focus()
 
-    def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted):
+    async def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted):
         case_folder = event.row_key.value
         preview = self.query_one(Markdown)
         if case_folder is None:
-            preview.update("No case selected")
+            await preview.update("No case selected")
         else:
-            preview.update(self.repo.case_preview(case_folder))
+            await preview.update(self.repo.case_preview(case_folder))
 
     async def on_input_changed(self, event: Input.Changed):
         self.filter_text = event.value
@@ -76,9 +76,9 @@ class QueryApp(App[str]):
     async def _update_case_list(self):
         await asyncio.sleep(0.1)
         selected = self.selected_case()
-        self.caselist.clear()
+        _ = self.caselist.clear()
 
-        if self.filter_text == "":
+        if self.filter_text is None or self.filter_text == "":
             return self._reset_table()
 
         return self._apply_filter(self.filter_text, selected)
@@ -87,7 +87,7 @@ class QueryApp(App[str]):
         for case in self.repo.cases:
             self._add_row(case)
 
-    def _apply_filter(self, filter_text: str, selected: str):
+    def _apply_filter(self, filter_text: str, selected: str | None):
         for case in self.repo.cases:
             score = (
                 partial_ratio(
@@ -101,8 +101,10 @@ class QueryApp(App[str]):
                 self._add_row(case)
                 if selected is not None and str(case.path) == selected:
                     self.caselist.move_cursor(row=self.caselist.get_row_index(selected))
+        if selected is None:
+            self.caselist.move_cursor(row=0)
 
-    def selected_case(self) -> Optional[str]:
+    def selected_case(self) -> str | None:
         if self.caselist.row_count == 0:
             return None
         # Typechecker doesn't know that Reactive[T] casts to T
