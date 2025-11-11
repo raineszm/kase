@@ -59,17 +59,14 @@ class TestQueryApp:
 
         return [case1_dir, case2_dir, case3_dir]
 
-    async def test_query_app_compose(self):
-        """Test that QueryApp composes correctly."""
+    async def test_query_app_compose(self, snapshot):
+        """Test that QueryApp composes correctly using snapshot testing."""
         with tempfile.TemporaryDirectory() as tmpdir:
             app = QueryApp(tmpdir)
-            async with app.run_test():
-                # Check that all widgets are present
-                assert app.query_one("Header")
-                assert app.query_one("DataTable")
-                assert app.query_one("Markdown")
-                assert app.query_one("Input")
-                assert app.query_one("Footer")
+            async with app.run_test() as pilot:
+                await pilot.pause()
+                # Use snapshot testing to verify the UI composition
+                assert app.export_screenshot(simplify=True) == snapshot
 
     async def test_query_app_displays_cases(self):
         """Test that QueryApp displays all cases."""
@@ -102,9 +99,8 @@ class TestQueryApp:
 
                 # Check that only matching cases are shown
                 datatable = app.query_one("DataTable")
-                # The filter should significantly reduce the number of rows
-                # With high threshold (0.8), exact match or close matches should show
-                assert datatable.row_count <= 3
+                # Only the "Python Related Case" should match
+                assert datatable.row_count == 1
 
     async def test_query_app_preview_updates(self):
         """Test that preview updates when highlighting a row."""

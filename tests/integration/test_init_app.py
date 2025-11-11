@@ -10,16 +10,14 @@ from kase.tui.init import InitApp
 class TestInitApp:
     """Integration tests for InitApp."""
 
-    async def test_init_app_compose(self):
-        """Test that InitApp composes correctly."""
+    async def test_init_app_compose(self, snapshot):
+        """Test that InitApp composes correctly using snapshot testing."""
         with tempfile.TemporaryDirectory() as tmpdir:
             app = InitApp(tmpdir)
-            async with app.run_test():
-                # Check that all widgets are present
-                assert app.query_one("#case_name_input")
-                assert app.query_one("#lp_bug_input")
-                assert app.query("TextArea")
-                assert app.query("Button")
+            async with app.run_test() as pilot:
+                await pilot.pause()
+                # Use snapshot testing to verify the UI composition
+                assert app.export_screenshot(simplify=True) == snapshot
 
     async def test_init_app_create_case_success(self):
         """Test creating a case through the UI."""
