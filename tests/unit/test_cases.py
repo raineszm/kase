@@ -244,8 +244,8 @@ class TestCaseRepo:
 
             assert result is False
 
-    def test_create_case_already_exists(self):
-        """Test creating a case when directory already exists."""
+    def test_create_case_existing_directory_no_metadata(self):
+        """Test creating a case when directory exists but no case.json."""
         with tempfile.TemporaryDirectory() as tmpdir:
             # Create the directory first
             case_dir = Path(tmpdir) / "1234"
@@ -258,7 +258,45 @@ class TestCaseRepo:
                 description="Test description",
             )
 
+            # Should succeed
+            assert result is True
+
+            # Verify metadata was created
+            metadata_file = case_dir / "case.json"
+            assert metadata_file.exists()
+
+    def test_create_case_existing_metadata(self):
+        """Test creating a case when case.json already exists."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create the directory and metadata file
+            case_dir = Path(tmpdir) / "1234"
+            case_dir.mkdir()
+            metadata_file = case_dir / "case.json"
+            metadata_file.write_text(
+                json.dumps(
+                    {
+                        "title": "Original Case",
+                        "desc": "Original description",
+                        "sf": "1234",
+                        "lp": "",
+                    }
+                )
+            )
+
+            repo = CaseRepo(tmpdir)
+            result = repo.create_case(
+                name="[1234] New Test Case",
+                lp="",
+                description="New description",
+            )
+
+            # Should fail - don't overwrite
             assert result is False
+
+            # Verify original metadata is unchanged
+            with metadata_file.open("r") as f:
+                data = json.load(f)
+            assert data["title"] == "Original Case"
 
     def test_title_regex_pattern_valid(self):
         """Test TITLE_RE regex with valid patterns."""

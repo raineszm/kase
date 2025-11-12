@@ -57,8 +57,6 @@ class TestQueryApp:
             )
         )
 
-        return [case1_dir, case2_dir, case3_dir]
-
     def test_query_app_compose(self, snap_compare):
         """Test that QueryApp composes correctly using snapshot testing."""
         with tempfile.TemporaryDirectory() as tmpdir:

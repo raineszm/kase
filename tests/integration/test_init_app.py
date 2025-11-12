@@ -102,8 +102,8 @@ class TestInitApp:
                 assert data["title"] == "Another Test Case"
                 assert data["sf"] == "5678"
 
-    async def test_init_app_existing_case(self):
-        """Test that creating a case with existing directory fails gracefully."""
+    async def test_init_app_existing_directory_no_metadata(self):
+        """Test creating case in existing directory without case.json."""
         with tempfile.TemporaryDirectory() as tmpdir:
             # Create existing directory
             existing_dir = Path(tmpdir) / "1234"
@@ -123,6 +123,51 @@ class TestInitApp:
                 await pilot.click("Button")
                 await pilot.pause()
 
-                # Verify no metadata was created
+                # Verify metadata was created
                 metadata_file = existing_dir / "case.json"
-                assert not metadata_file.exists()
+                assert metadata_file.exists()
+
+                with metadata_file.open("r") as f:
+                    data = json.load(f)
+
+                assert data["title"] == "Test Case"
+                assert data["sf"] == "1234"
+
+    async def test_init_app_existing_case_json(self):
+        """Test that creating a case with existing case.json fails gracefully."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create existing directory with case.json
+            existing_dir = Path(tmpdir) / "1234"
+            existing_dir.mkdir()
+            existing_metadata = existing_dir / "case.json"
+            existing_metadata.write_text(
+                json.dumps(
+                    {
+                        "title": "Original Case",
+                        "desc": "Original description",
+                        "sf": "1234",
+                        "lp": "",
+                    }
+                )
+            )
+
+            app = InitApp(tmpdir)
+            async with app.run_test() as pilot:
+                # Fill in the form
+                case_name_input = app.query_one("#case_name_input")
+                case_name_input.value = "[1234] New Test Case"
+
+                text_area = app.query_one("TextArea")
+                await pilot.pause()
+                text_area.text = "New Description"
+
+                # Click the button
+                await pilot.click("Button")
+                await pilot.pause()
+
+                # Verify metadata was NOT overwritten
+                with existing_metadata.open("r") as f:
+                    data = json.load(f)
+
+                assert data["title"] == "Original Case"
+                assert data["desc"] == "Original description"
