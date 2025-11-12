@@ -59,14 +59,12 @@ class TestQueryApp:
 
         return [case1_dir, case2_dir, case3_dir]
 
-    async def test_query_app_compose(self, snapshot):
+    def test_query_app_compose(self, snap_compare):
         """Test that QueryApp composes correctly using snapshot testing."""
         with tempfile.TemporaryDirectory() as tmpdir:
             app = QueryApp(tmpdir)
-            async with app.run_test() as pilot:
-                await pilot.pause()
-                # Use snapshot testing to verify the UI composition
-                assert app.export_screenshot(simplify=True) == snapshot
+            # Use Textual's snap_compare for snapshot testing
+            assert snap_compare(app)
 
     async def test_query_app_displays_cases(self):
         """Test that QueryApp displays all cases."""
