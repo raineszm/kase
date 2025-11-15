@@ -33,3 +33,13 @@ def test_extract_case_id_returns_none_for_invalid_url():
     url = "https://example.com/invalid"
     case_id = scraper.extract_case_id(url)
     assert case_id is None
+
+
+def test_is_salesforce_url():
+    """Test Salesforce URL validation."""
+    scraper = SalesforceScraper()
+    assert scraper.is_salesforce_url(
+        "https://acme.lightning.force.com/lightning/r/Case/5001234567890AB/view"
+    )
+    assert scraper.is_salesforce_url("https://acme.my.salesforce.com/5001234567890AB")
+    assert not scraper.is_salesforce_url("https://example.com/invalid")

@@ -47,6 +47,21 @@ class SalesforceScraper:
         if self.playwright:
             self.playwright.stop()
 
+    def is_salesforce_url(self, url: str) -> bool:
+        """Check if URL is a Salesforce URL.
+
+        Args:
+            url: URL to check
+
+        Returns:
+            True if URL appears to be a Salesforce URL
+        """
+        salesforce_patterns = [
+            "salesforce.com",
+            "force.com",
+        ]
+        return any(pattern in url.lower() for pattern in salesforce_patterns)
+
     def extract_case_id(self, url: str) -> str | None:
         """Extract Salesforce case ID from URL.
 
@@ -94,6 +109,9 @@ class SalesforceScraper:
         """
         if not self.context:
             raise RuntimeError("Scraper not initialized. Use context manager.")
+
+        if not self.is_salesforce_url(url):
+            print(f"Warning: URL does not appear to be a Salesforce URL: {url}")
 
         page = self.context.new_page()
 
