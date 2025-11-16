@@ -62,8 +62,8 @@ class SalesforceScraper:
         ]
         return any(pattern in url.lower() for pattern in salesforce_patterns)
 
-    def extract_case_id(self, url: str) -> str | None:
-        """Extract Salesforce case ID from URL.
+    def extract_case_id_from_url(self, url: str) -> str | None:
+        """Extract Salesforce case ID from URL (for fallback).
 
         Args:
             url: Salesforce case URL
@@ -73,6 +73,49 @@ class SalesforceScraper:
         """
         match = self.CASE_ID_PATTERN.search(url)
         return match.group(1) if match else None
+
+    def _extract_case_number(self, page: Page) -> str | None:
+        """Extract case number from the page content.
+
+        Args:
+            page: Playwright page object
+
+        Returns:
+            Case number or None if not found
+        """
+        # Try multiple selectors for Salesforce Lightning and Classic
+        selectors = [
+            # Lightning - Case Number field
+            'lightning-formatted-text[data-output-element-id*="CaseNumber"]',
+            'span[title*="Case Number"]',
+            # Classic UI
+            "#cas2_ileinner",
+            # Generic fallback - look for case number label
+            'label:has-text("Case Number") + *',
+            'div:has-text("Case Number:") + *',
+        ]
+
+        for selector in selectors:
+            try:
+                element = page.query_selector(selector)
+                if element:
+                    text = element.inner_text().strip()
+                    if text:
+                        return text
+            except Exception:
+                continue
+
+        # Last resort: try to find it in page content
+        try:
+            content = page.content()
+            # Look for case number patterns (typically numeric)
+            match = re.search(r'Case\s+Number["\s:]+([0-9]+)', content, re.IGNORECASE)
+            if match:
+                return match.group(1).strip()
+        except Exception:
+            pass
+
+        return None
 
     def wait_for_login(self, page: Page, timeout: int = 300000) -> bool:
         """Wait for user to complete login process.
@@ -127,14 +170,18 @@ class SalesforceScraper:
                 or "authentication" in current_url.lower()
             )
             if needs_login:
+                if self.headless:
+                    print("\nError: Login required, but browser is in headless mode.")
+                    print("Please run the command with --show-browser flag to login:")
+                    print("  kase import-case <url> --show-browser")
+                    return None
+
                 print(
                     "\nLogin required. "
                     "Please complete the login process in the browser."
                 )
                 print("Waiting for login to complete...")
-
-                if not self.headless:
-                    print("Browser window should be visible for login.")
+                print("Browser window should be visible for login.")
 
                 if not self.wait_for_login(page):
                     print("Login failed or timed out.")
@@ -147,19 +194,22 @@ class SalesforceScraper:
                 else:
                     page.wait_for_load_state("networkidle", timeout=30000)
 
-            # Extract case ID from URL
-            case_id = self.extract_case_id(url)
-            if not case_id:
-                print("Could not extract case ID from URL")
-                return None
-
-            print(f"Extracted case ID: {case_id}")
-
             # Wait for the page to be ready
             page.wait_for_load_state("domcontentloaded", timeout=30000)
 
-            # Try to extract case information
+            # Try to extract case information from the page
             # Salesforce Lightning uses specific selectors
+            case_number = self._extract_case_number(page)
+            if not case_number:
+                # Fallback to extracting from URL if page scraping fails
+                case_number = self.extract_case_id_from_url(url)
+                if not case_number:
+                    print("Could not extract case number from page or URL")
+                    return None
+                print(f"Using case ID from URL: {case_number}")
+            else:
+                print(f"Extracted case number from page: {case_number}")
+
             title = self._extract_title(page)
             description = self._extract_description(page)
 
@@ -168,7 +218,7 @@ class SalesforceScraper:
                 return None
 
             return SalesforceCase(
-                sf_id=case_id, title=title, description=description or ""
+                sf_id=case_number, title=title, description=description or ""
             )
 
         except Exception as e:
