@@ -55,38 +55,23 @@ class TestQueryAppProperties:
         ),
     )
     @settings(max_examples=5, deadline=10000)
-    async def test_query_app_handles_various_filters(self, filter_text):
+    async def test_query_app_handles_various_filters(
+        self, case_repo_50_cases, filter_text
+    ):
         """Test that QueryApp handles various filter inputs without crashing."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            # Create a small set of test cases
-            for i in range(3):
-                case_dir = Path(tmpdir) / str(1000 + i)
-                case_dir.mkdir()
-                case_meta = case_dir / "case.json"
-                case_meta.write_text(
-                    json.dumps(
-                        {
-                            "title": f"Test Case {i}",
-                            "desc": f"Description {i}",
-                            "sf": str(1000 + i),
-                            "lp": "",
-                        }
-                    )
-                )
+        app = QueryApp(case_repo_50_cases)
+        async with app.run_test() as pilot:
+            await pilot.pause()
 
-            app = QueryApp(tmpdir)
-            async with app.run_test() as pilot:
-                await pilot.pause()
+            # Apply filter
+            input_widget = app.query_one("Input")
+            input_widget.value = filter_text
+            await pilot.pause(0.1)
 
-                # Apply filter
-                input_widget = app.query_one("Input")
-                input_widget.value = filter_text
-                await pilot.pause(0.1)
-
-                # The app should not crash regardless of filter
-                datatable = app.query_one("DataTable")
-                # Row count should be between 0 and num_cases
-                assert 0 <= datatable.row_count <= 3
+            # The app should not crash regardless of filter
+            datatable = app.query_one("DataTable")
+            # Row count should be between 0 and 50 (the number of cases in the repo)
+            assert 0 <= datatable.row_count <= 50
 
     @given(
         case_count=st.integers(min_value=1, max_value=5),

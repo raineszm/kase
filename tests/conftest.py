@@ -47,3 +47,31 @@ def create_test_cases():
         return case_dirs
 
     return _create_cases
+
+
+@pytest.fixture(scope="session")
+def case_repo_50_cases(tmp_path_factory):
+    """Create a reusable case repo with 50 pre-created cases.
+
+    This fixture is session-scoped and creates a temporary directory with 50 cases
+    that can be reused across all tests that don't require mutation.
+    """
+    tmpdir = tmp_path_factory.mktemp("case_repo_50")
+
+    # Create 50 test cases
+    for i in range(50):
+        case_dir = tmpdir / str(1000 + i)
+        case_dir.mkdir()
+        case_meta = case_dir / "case.json"
+        case_meta.write_text(
+            json.dumps(
+                {
+                    "title": f"Test Case {i}",
+                    "desc": f"Description for test case {i}",
+                    "sf": str(1000 + i),
+                    "lp": f"LP#{1000 + i}" if i % 3 == 0 else "",
+                }
+            )
+        )
+
+    return str(tmpdir)
