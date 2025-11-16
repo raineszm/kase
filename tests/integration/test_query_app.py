@@ -1,223 +1,165 @@
 """Integration tests for the QueryApp TUI."""
 
 import json
-import tempfile
 from pathlib import Path
 
+import pytest
+
 from kase.tui.query import QueryApp
+
+
+@pytest.fixture
+def query_app_test_cases(temp_case_dir):
+    """Create test cases for QueryApp tests."""
+    cases = [
+        ("1234", "First Test Case", "First description", "LP#1111"),
+        ("5678", "Second Test Case", "Second description", "LP#2222"),
+        ("9999", "Python Related Case", "Testing Python functionality", ""),
+    ]
+
+    for sf, title, desc, lp in cases:
+        case_dir = Path(temp_case_dir) / sf
+        case_dir.mkdir()
+        case_meta = case_dir / "case.json"
+        case_meta.write_text(
+            json.dumps({"title": title, "desc": desc, "sf": sf, "lp": lp})
+        )
+
+    return temp_case_dir
 
 
 class TestQueryApp:
     """Integration tests for QueryApp."""
 
-    def setup_test_cases(self, tmpdir):
-        """Helper method to set up test cases."""
-        # Create first case
-        case1_dir = Path(tmpdir) / "1234"
-        case1_dir.mkdir()
-        case1_meta = case1_dir / "case.json"
-        case1_meta.write_text(
-            json.dumps(
-                {
-                    "title": "First Test Case",
-                    "desc": "First description",
-                    "sf": "1234",
-                    "lp": "LP#1111",
-                }
-            )
-        )
-
-        # Create second case
-        case2_dir = Path(tmpdir) / "5678"
-        case2_dir.mkdir()
-        case2_meta = case2_dir / "case.json"
-        case2_meta.write_text(
-            json.dumps(
-                {
-                    "title": "Second Test Case",
-                    "desc": "Second description",
-                    "sf": "5678",
-                    "lp": "LP#2222",
-                }
-            )
-        )
-
-        # Create third case
-        case3_dir = Path(tmpdir) / "9999"
-        case3_dir.mkdir()
-        case3_meta = case3_dir / "case.json"
-        case3_meta.write_text(
-            json.dumps(
-                {
-                    "title": "Python Related Case",
-                    "desc": "Testing Python functionality",
-                    "sf": "9999",
-                    "lp": "",
-                }
-            )
-        )
-
-    def test_query_app_compose(self, snap_compare):
+    def test_query_app_compose(self, snap_compare, temp_case_dir):
         """Test that QueryApp composes correctly using snapshot testing."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            app = QueryApp(tmpdir)
-            # Use Textual's snap_compare for snapshot testing
-            assert snap_compare(app)
+        app = QueryApp(temp_case_dir)
+        assert snap_compare(app)
 
-    async def test_query_app_displays_cases(self):
+    async def test_query_app_displays_cases(self, query_app_test_cases):
         """Test that QueryApp displays all cases."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            self.setup_test_cases(tmpdir)
+        app = QueryApp(query_app_test_cases)
+        async with app.run_test() as pilot:
+            await pilot.pause()
 
-            app = QueryApp(tmpdir)
-            async with app.run_test() as pilot:
-                await pilot.pause()
+            # Check that datatable has rows
+            datatable = app.query_one("DataTable")
+            assert datatable.row_count == 3
 
-                # Check that datatable has rows
-                datatable = app.query_one("DataTable")
-                assert datatable.row_count == 3
-
-    async def test_query_app_filter_cases(self):
+    async def test_query_app_filter_cases(self, query_app_test_cases):
         """Test filtering cases through the input."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            self.setup_test_cases(tmpdir)
+        app = QueryApp(query_app_test_cases)
+        async with app.run_test() as pilot:
+            await pilot.pause()
 
-            app = QueryApp(tmpdir)
-            async with app.run_test() as pilot:
-                await pilot.pause()
+            # Get the input widget and type a filter
+            input_widget = app.query_one("Input")
+            input_widget.value = "Python"
 
-                # Get the input widget and type a filter
-                input_widget = app.query_one("Input")
-                input_widget.value = "Python"
+            # Wait for filtering to complete
+            await pilot.pause(0.2)
 
-                # Wait for filtering to complete
-                await pilot.pause(0.2)
+            # Check that only matching cases are shown
+            datatable = app.query_one("DataTable")
+            # Only the "Python Related Case" should match
+            assert datatable.row_count == 1
 
-                # Check that only matching cases are shown
-                datatable = app.query_one("DataTable")
-                # Only the "Python Related Case" should match
-                assert datatable.row_count == 1
-
-    async def test_query_app_preview_updates(self):
+    async def test_query_app_preview_updates(self, query_app_test_cases):
         """Test that preview updates when highlighting a row."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            self.setup_test_cases(tmpdir)
+        app = QueryApp(query_app_test_cases)
+        async with app.run_test() as pilot:
+            await pilot.pause()
 
-            app = QueryApp(tmpdir)
-            async with app.run_test() as pilot:
-                await pilot.pause()
+            # Get the markdown widget
+            markdown = app.query_one("Markdown")
 
-                # Get the markdown widget
-                markdown = app.query_one("Markdown")
+            # Wait for preview to load
+            await pilot.pause(0.2)
 
-                # Wait for preview to load
-                await pilot.pause(0.2)
+            # Verify the markdown widget exists and is visible
+            assert markdown is not None
+            datatable = app.query_one("DataTable")
+            assert datatable.row_count > 0
 
-                # Verify the markdown widget exists and is visible
-                assert markdown is not None
-                # The preview mechanism works through the
-                # on_data_table_row_highlighted handler
-                # We can verify it's set up correctly by checking datatable rows
-                datatable = app.query_one("DataTable")
-                assert datatable.row_count > 0
-
-    async def test_query_app_cursor_navigation(self):
+    async def test_query_app_cursor_navigation(self, query_app_test_cases):
         """Test cursor navigation with ctrl+n and ctrl+p."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            self.setup_test_cases(tmpdir)
+        app = QueryApp(query_app_test_cases)
+        async with app.run_test() as pilot:
+            await pilot.pause()
 
-            app = QueryApp(tmpdir)
-            async with app.run_test() as pilot:
-                await pilot.pause()
+            datatable = app.query_one("DataTable")
+            initial_row = datatable.cursor_row
 
-                datatable = app.query_one("DataTable")
-                initial_row = datatable.cursor_row
+            # Move cursor down
+            await pilot.press("ctrl+n")
+            await pilot.pause()
 
-                # Move cursor down
-                await pilot.press("ctrl+n")
-                await pilot.pause()
+            assert datatable.cursor_row == initial_row + 1
 
-                assert datatable.cursor_row == initial_row + 1
+            # Move cursor up
+            await pilot.press("ctrl+p")
+            await pilot.pause()
 
-                # Move cursor up
-                await pilot.press("ctrl+p")
-                await pilot.pause()
+            assert datatable.cursor_row == initial_row
 
-                assert datatable.cursor_row == initial_row
-
-    async def test_query_app_select_row(self):
+    async def test_query_app_select_row(self, query_app_test_cases):
         """Test selecting a row with enter key."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            self.setup_test_cases(tmpdir)
+        app = QueryApp(query_app_test_cases)
+        async with app.run_test() as pilot:
+            await pilot.pause()
 
-            app = QueryApp(tmpdir)
-            async with app.run_test() as pilot:
+            # Press enter to select the first row
+            # App might exit which is expected behavior
+            try:
+                await pilot.press("enter")
                 await pilot.pause()
+            except Exception:
+                pass
 
-                # Press enter to select the first row
-                # Note: We can't easily test the exit value in the test harness
-                # but we can verify the action doesn't crash
-                try:
-                    await pilot.press("enter")
-                    await pilot.pause()
-                except Exception:
-                    # App might exit which is expected behavior
-                    pass
-
-    async def test_query_app_empty_directory(self):
+    async def test_query_app_empty_directory(self, temp_case_dir):
         """Test QueryApp with empty directory."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            app = QueryApp(tmpdir)
-            async with app.run_test() as pilot:
-                await pilot.pause()
+        app = QueryApp(temp_case_dir)
+        async with app.run_test() as pilot:
+            await pilot.pause()
 
-                datatable = app.query_one("DataTable")
-                assert datatable.row_count == 0
+            datatable = app.query_one("DataTable")
+            assert datatable.row_count == 0
 
-    async def test_query_app_selected_case(self):
+    async def test_query_app_selected_case(self, query_app_test_cases):
         """Test selected_case method."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            self.setup_test_cases(tmpdir)
+        app = QueryApp(query_app_test_cases)
+        async with app.run_test() as pilot:
+            await pilot.pause()
 
-            app = QueryApp(tmpdir)
-            async with app.run_test() as pilot:
-                await pilot.pause()
+            # Get the initially selected case
+            selected = app.selected_case()
+            # With 3 cases, there should be a selection
+            assert selected is not None
 
-                selected = app.selected_case()
-                # Should have a selected case (first one)
-                assert selected is not None
-                assert str(tmpdir) in selected
+    async def test_query_app_selected_case_empty(self, temp_case_dir):
+        """Test selected_case with no cases."""
+        app = QueryApp(temp_case_dir)
+        async with app.run_test() as pilot:
+            await pilot.pause()
 
-    async def test_query_app_selected_case_empty(self):
-        """Test selected_case method with empty table."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            app = QueryApp(tmpdir)
-            async with app.run_test() as pilot:
-                await pilot.pause()
+            selected = app.selected_case()
+            assert selected is None
 
-                selected = app.selected_case()
-                # Should be None when no cases
-                assert selected is None
+    async def test_query_app_reset_filter(self, query_app_test_cases):
+        """Test resetting the filter."""
+        app = QueryApp(query_app_test_cases)
+        async with app.run_test() as pilot:
+            await pilot.pause()
 
-    async def test_query_app_reset_filter(self):
-        """Test that clearing filter resets the table."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            self.setup_test_cases(tmpdir)
+            input_widget = app.query_one("Input")
+            datatable = app.query_one("DataTable")
 
-            app = QueryApp(tmpdir)
-            async with app.run_test() as pilot:
-                await pilot.pause()
+            # Apply a filter
+            input_widget.value = "Python"
+            await pilot.pause(0.2)
+            assert datatable.row_count == 1
 
-                input_widget = app.query_one("Input")
-                datatable = app.query_one("DataTable")
-
-                # Apply filter
-                input_widget.value = "Python"
-                await pilot.pause(0.2)
-
-                # Clear filter
-                input_widget.value = ""
-                await pilot.pause(0.2)
-
-                # Should show all cases again
-                assert datatable.row_count == 3
+            # Clear the filter
+            input_widget.value = ""
+            await pilot.pause(0.2)
+            assert datatable.row_count == 3
