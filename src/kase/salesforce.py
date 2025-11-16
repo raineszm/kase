@@ -17,9 +17,6 @@ class SalesforceCase(BaseModel):
 class SalesforceScraper:
     """Scraper for extracting case information from Salesforce."""
 
-    # Pattern to extract SF case ID from URL
-    CASE_ID_PATTERN = re.compile(r"/([0-9a-zA-Z]{15,18})(?:/|$)")
-
     def __init__(self, headless: bool = True):
         """Initialize the scraper.
 
@@ -62,18 +59,6 @@ class SalesforceScraper:
         ]
         return any(pattern in url.lower() for pattern in salesforce_patterns)
 
-    def extract_case_id_from_url(self, url: str) -> str | None:
-        """Extract Salesforce case ID from URL (for fallback).
-
-        Args:
-            url: Salesforce case URL
-
-        Returns:
-            Case ID or None if not found
-        """
-        match = self.CASE_ID_PATTERN.search(url)
-        return match.group(1) if match else None
-
     def _extract_case_number(self, page: Page) -> str | None:
         """Extract case number from the page content.
 
@@ -83,16 +68,11 @@ class SalesforceScraper:
         Returns:
             Case number or None if not found
         """
-        # Try multiple selectors for Salesforce Lightning and Classic
+        # Selectors for Salesforce Lightning UI
         selectors = [
             # Lightning - Case Number field
             'lightning-formatted-text[data-output-element-id*="CaseNumber"]',
             'span[title*="Case Number"]',
-            # Classic UI
-            "#cas2_ileinner",
-            # Generic fallback - look for case number label
-            'label:has-text("Case Number") + *',
-            'div:has-text("Case Number:") + *',
         ]
 
         for selector in selectors:
@@ -201,14 +181,10 @@ class SalesforceScraper:
             # Salesforce Lightning uses specific selectors
             case_number = self._extract_case_number(page)
             if not case_number:
-                # Fallback to extracting from URL if page scraping fails
-                case_number = self.extract_case_id_from_url(url)
-                if not case_number:
-                    print("Could not extract case number from page or URL")
-                    return None
-                print(f"Using case ID from URL: {case_number}")
-            else:
-                print(f"Extracted case number from page: {case_number}")
+                print("Could not extract case number from page")
+                return None
+
+            print(f"Extracted case number from page: {case_number}")
 
             title = self._extract_title(page)
             description = self._extract_description(page)
@@ -236,16 +212,11 @@ class SalesforceScraper:
         Returns:
             Case title or None
         """
-        # Try multiple selectors for Salesforce Lightning and Classic
+        # Selectors for Salesforce Lightning UI
         selectors = [
             # Lightning - Subject field
             'lightning-formatted-text[data-output-element-id*="Subject"]',
             'span[title*="Subject"]',
-            # Classic UI
-            "#cas3_ileinner",
-            # Generic fallback - look for subject label
-            'label:has-text("Subject") + *',
-            'div:has-text("Subject:") + *',
         ]
 
         for selector in selectors:
@@ -281,16 +252,11 @@ class SalesforceScraper:
         Returns:
             Case description or None
         """
-        # Try multiple selectors for description
+        # Selectors for Salesforce Lightning UI
         selectors = [
             # Lightning - Description field
             'lightning-formatted-text[data-output-element-id*="Description"]',
             'div[title*="Description"]',
-            # Classic UI
-            "#cas14_ileinner",
-            # Generic fallback
-            'label:has-text("Description") + *',
-            'div:has-text("Description:") + *',
         ]
 
         for selector in selectors:
