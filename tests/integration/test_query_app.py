@@ -1,39 +1,22 @@
 """Integration tests for the QueryApp TUI."""
 
-import json
-from pathlib import Path
-
 import pytest
 
 from kase.tui.query import QueryApp
 
 
 @pytest.fixture
-def query_app_test_cases(temp_case_dir):
-    """Create test cases for QueryApp tests."""
-    cases = [
-        ("1234", "First Test Case", "First description", "LP#1111"),
-        ("5678", "Second Test Case", "Second description", "LP#2222"),
-        ("9999", "Python Related Case", "Testing Python functionality", ""),
-    ]
-
-    for sf, title, desc, lp in cases:
-        case_dir = Path(temp_case_dir) / sf
-        case_dir.mkdir()
-        case_meta = case_dir / "case.json"
-        case_meta.write_text(
-            json.dumps({"title": title, "desc": desc, "sf": sf, "lp": lp})
-        )
-
-    return temp_case_dir
+def query_app_test_cases(case_repo_query_small):
+    """Provide path to a small, pre-created case repo for QueryApp tests."""
+    return case_repo_query_small
 
 
 class TestQueryApp:
     """Integration tests for QueryApp."""
 
-    def test_query_app_compose(self, snap_compare, temp_case_dir):
+    def test_query_app_compose(self, snap_compare, case_repo_query_small):
         """Test that QueryApp composes correctly using snapshot testing."""
-        app = QueryApp(temp_case_dir)
+        app = QueryApp(case_repo_query_small)
         assert snap_compare(app)
 
     async def test_query_app_displays_cases(self, query_app_test_cases):
@@ -116,9 +99,9 @@ class TestQueryApp:
             except Exception:
                 pass
 
-    async def test_query_app_empty_directory(self, temp_case_dir):
+    async def test_query_app_empty_directory(self, case_repo_empty):
         """Test QueryApp with empty directory."""
-        app = QueryApp(temp_case_dir)
+        app = QueryApp(case_repo_empty)
         async with app.run_test() as pilot:
             await pilot.pause()
 

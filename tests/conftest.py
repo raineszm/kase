@@ -75,3 +75,36 @@ def case_repo_50_cases(tmp_path_factory):
         )
 
     return str(tmpdir)
+
+
+@pytest.fixture(scope="session")
+def case_repo_query_small(tmp_path_factory):
+    """Create a small reusable case repo used by QueryApp tests.
+
+    Contains three specific cases used by assertions in tests:
+    - SF 1234: First Test Case
+    - SF 5678: Second Test Case
+    - SF 9999: Python Related Case (used for filtering assertions)
+    """
+    tmpdir = tmp_path_factory.mktemp("case_repo_query_small")
+
+    cases = [
+        ("1234", "First Test Case", "First description", "LP#1111"),
+        ("5678", "Second Test Case", "Second description", "LP#2222"),
+        ("9999", "Python Related Case", "Testing Python functionality", ""),
+    ]
+
+    for sf, title, desc, lp in cases:
+        case_dir = tmpdir / sf
+        case_dir.mkdir()
+        case_meta = case_dir / "case.json"
+        case_meta.write_text(json.dumps({"title": title, "desc": desc, "sf": sf, "lp": lp}))
+
+    return str(tmpdir)
+
+
+@pytest.fixture(scope="session")
+def case_repo_empty(tmp_path_factory):
+    """Create an empty reusable case repo directory for tests that need no cases."""
+    tmpdir = tmp_path_factory.mktemp("case_repo_empty")
+    return str(tmpdir)
