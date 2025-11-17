@@ -68,8 +68,12 @@ class CaseRepo:
             title=title,
             desc=description,
         )
-        if path.exists():
+        # Check if case.json already exists - don't overwrite
+        metadata_file = path / "case.json"
+        if metadata_file.exists():
             return False
-        path.mkdir()
+        # Create directory if it doesn't exist
+        if not path.exists():
+            path.mkdir()
         case.write_metadata()
         return True
