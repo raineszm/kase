@@ -98,7 +98,9 @@ def case_repo_query_small(tmp_path_factory):
         case_dir = tmpdir / sf
         case_dir.mkdir()
         case_meta = case_dir / "case.json"
-        case_meta.write_text(json.dumps({"title": title, "desc": desc, "sf": sf, "lp": lp}))
+        case_meta.write_text(
+            json.dumps({"title": title, "desc": desc, "sf": sf, "lp": lp})
+        )
 
     return str(tmpdir)
 
