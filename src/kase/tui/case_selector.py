@@ -105,8 +105,14 @@ class CaseSelector(Static):
             if score > 0.8:
                 self._add_row(case)
                 if selected is not None and str(case.path) == selected:
-                    self.caselist.move_cursor(row=self.caselist.get_row_index(selected))
-        if selected is None:
+                    try:
+                        self.caselist.move_cursor(
+                            row=self.caselist.get_row_index(selected)
+                        )
+                    except KeyError:
+                        # Selected case is no longer in the filtered list
+                        pass
+        if selected is None and self.caselist.row_count > 0:
             self.caselist.move_cursor(row=0)
 
     def selected_case(self) -> str | None:
