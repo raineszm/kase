@@ -63,6 +63,8 @@ class CaseSelector(Static):
         self.repo = CaseRepo(case_dir)
         self.filter_text = None
         self.update_task = None
+        # Cache cases to avoid re-reading from disk on each lookup
+        self._cases_cache = list(self.repo.cases)
 
     def compose(self):
         with Horizontal():
@@ -110,11 +112,11 @@ class CaseSelector(Static):
         return self._apply_filter(self.filter_text, selected)
 
     def _reset_table(self):
-        for case in self.repo.cases:
+        for case in self._cases_cache:
             self._add_row(case)
 
     def _apply_filter(self, filter_text: str, selected: str | None):
-        for case in self.repo.cases:
+        for case in self._cases_cache:
             score = (
                 partial_ratio(
                     " ".join([case.sf, case.lp, case.title, case.desc]),
@@ -168,19 +170,11 @@ class CaseSelector(Static):
 
     def _get_case_by_path(self, path: str) -> Case | None:
         """Get a Case object by its path string."""
-        for case in self.repo.cases:
+        for case in self._cases_cache:
             if str(case.path) == path:
                 return case
         return None
 
     def _case_preview(self, case: Case) -> str:
         """Generate preview markdown for a case."""
-        import textwrap
-
-        return textwrap.dedent(
-            """
-            # [{sf}] {title}
-
-            {desc}
-            """
-        ).format(sf=case.sf, title=case.title, desc=case.desc)
+        return self.repo.case_preview(str(case.path))
