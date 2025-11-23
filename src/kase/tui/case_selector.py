@@ -3,8 +3,9 @@ import asyncio
 from rapidfuzz import utils
 from rapidfuzz.fuzz import partial_ratio
 from textual.binding import Binding
+from textual.containers import Horizontal
 from textual.message import Message
-from textual.widgets import DataTable, Input, Static
+from textual.widgets import DataTable, Input, Markdown, Static
 
 from ..cases import Case, CaseRepo
 
@@ -27,9 +28,14 @@ class CaseSelector(Static):
         height: 100%;
     }
 
-    CaseSelector DataTable {
+    CaseSelector .caselist {
         width: 1fr;
-        height: 1fr;
+        height: 100%;
+    }
+
+    CaseSelector .preview {
+        width: 1fr;
+        height: 100%;
     }
 
     CaseSelector Input {
@@ -41,16 +47,16 @@ class CaseSelector(Static):
     class CaseSelected(Message):
         """Event raised when a case is selected."""
 
-        def __init__(self, case_path: str) -> None:
+        def __init__(self, case: Case) -> None:
             super().__init__()
-            self.case_path = case_path
+            self.case = case
 
     class CaseHighlighted(Message):
         """Event raised when a case is highlighted."""
 
-        def __init__(self, case_path: str | None) -> None:
+        def __init__(self, case: Case | None) -> None:
             super().__init__()
-            self.case_path = case_path
+            self.case = case
 
     def __init__(self, case_dir: str = "~/cases", **kwargs):
         super().__init__(**kwargs)
@@ -59,9 +65,13 @@ class CaseSelector(Static):
         self.update_task = None
 
     def compose(self):
-        self.caselist = DataTable[str](cursor_type="row", zebra_stripes=True)
+        with Horizontal():
+            self.caselist = DataTable[str](
+                cursor_type="row", zebra_stripes=True, classes="caselist"
+            )
+            yield self.caselist
+            yield Markdown(classes="preview")
         self.input = Input(placeholder="Filter", compact=True)
-        yield self.caselist
         yield self.input
 
     def on_mount(self):
@@ -70,8 +80,19 @@ class CaseSelector(Static):
         _ = self.input.focus()
 
     async def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted):
-        case_folder = event.row_key.value if event.row_key else None
-        self.post_message(self.CaseHighlighted(case_folder))
+        case_path = event.row_key.value if event.row_key else None
+        preview = self.query_one(Markdown)
+        if case_path is None:
+            await preview.update("No case selected")
+            self.post_message(self.CaseHighlighted(None))
+        else:
+            case = self._get_case_by_path(case_path)
+            if case:
+                await preview.update(self._case_preview(case))
+                self.post_message(self.CaseHighlighted(case))
+            else:
+                await preview.update("No case selected")
+                self.post_message(self.CaseHighlighted(None))
 
     async def on_input_changed(self, event: Input.Changed):
         self.filter_text = event.value
@@ -131,8 +152,10 @@ class CaseSelector(Static):
         self.caselist.action_cursor_down()
 
     def action_select_row(self):
-        if case_folder := self.selected_case():
-            self.post_message(self.CaseSelected(case_folder))
+        if case_path := self.selected_case():
+            case = self._get_case_by_path(case_path)
+            if case:
+                self.post_message(self.CaseSelected(case))
 
     def _add_row(self, case: Case):
         _ = self.caselist.add_row(
@@ -142,3 +165,22 @@ class CaseSelector(Static):
             case.desc,
             key=str(case.path),
         )
+
+    def _get_case_by_path(self, path: str) -> Case | None:
+        """Get a Case object by its path string."""
+        for case in self.repo.cases:
+            if str(case.path) == path:
+                return case
+        return None
+
+    def _case_preview(self, case: Case) -> str:
+        """Generate preview markdown for a case."""
+        import textwrap
+
+        return textwrap.dedent(
+            """
+            # [{sf}] {title}
+
+            {desc}
+            """
+        ).format(sf=case.sf, title=case.title, desc=case.desc)

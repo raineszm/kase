@@ -88,13 +88,13 @@ class TestCaseSelector:
         class TestApp(App):
             def __init__(self, *args, **kwargs):
                 super().__init__(*args, **kwargs)
-                self.case_selected_path = None
+                self.case_selected = None
 
             def compose(self):
                 yield CaseSelector(case_selector_test_cases)
 
             def on_case_selector_case_selected(self, event: CaseSelector.CaseSelected):
-                self.case_selected_path = event.case_path
+                self.case_selected = event.case
 
         app = TestApp()
         async with app.run_test() as pilot:
@@ -105,7 +105,8 @@ class TestCaseSelector:
             await pilot.pause()
 
             # Check that the event was received
-            assert app.case_selected_path is not None
+            assert app.case_selected is not None
+            assert app.case_selected.path is not None
 
     async def test_case_selector_emits_case_highlighted_event(
         self, case_selector_test_cases
@@ -116,7 +117,7 @@ class TestCaseSelector:
         class TestApp(App):
             def __init__(self, *args, **kwargs):
                 super().__init__(*args, **kwargs)
-                self.case_highlighted_path = None
+                self.case_highlighted = None
 
             def compose(self):
                 yield CaseSelector(case_selector_test_cases)
@@ -124,14 +125,15 @@ class TestCaseSelector:
             def on_case_selector_case_highlighted(
                 self, event: CaseSelector.CaseHighlighted
             ):
-                self.case_highlighted_path = event.case_path
+                self.case_highlighted = event.case
 
         app = TestApp()
         async with app.run_test() as pilot:
             await pilot.pause(0.2)
 
             # Check that an initial highlight event was received
-            assert app.case_highlighted_path is not None
+            assert app.case_highlighted is not None
+            assert app.case_highlighted.path is not None
 
     async def test_case_selector_selected_case(self, case_selector_test_cases):
         """Test selected_case method."""
