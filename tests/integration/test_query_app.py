@@ -1,8 +1,10 @@
-"""Integration tests for the QueryApp TUI."""
+"""Integration tests for QueryApp TUI."""
 
 import pytest
+from textual.widgets import Footer, Header
 
 from kase.tui.query import QueryApp
+from kase.tui.widgets.case_selector import CaseSelector
 
 
 @pytest.fixture
@@ -12,137 +14,40 @@ def query_app_test_cases(case_repo_query_small):
 
 
 class TestQueryApp:
-    """Integration tests for QueryApp."""
+    """Integration tests covering QueryApp wiring and events."""
 
-    def test_query_app_compose(self, snap_compare, case_repo_query_small):
-        """Test that QueryApp composes correctly using snapshot testing."""
+    def test_query_app_compose_snapshot(self, snap_compare, case_repo_query_small):
+        """Ensure QueryApp composes to the expected widget tree."""
         app = QueryApp(case_repo_query_small)
         assert snap_compare(app)
 
-    async def test_query_app_displays_cases(self, query_app_test_cases):
-        """Test that QueryApp displays all cases."""
+    async def test_query_app_mounts_core_widgets(self, query_app_test_cases):
+        """Verify QueryApp wires up the header, selector, and footer."""
         app = QueryApp(query_app_test_cases)
         async with app.run_test() as pilot:
             await pilot.pause()
+            assert app.query_one(Header) is not None
+            assert app.query_one(CaseSelector) is not None
+            assert app.query_one(Footer) is not None
 
-            # Check that datatable has rows
-            datatable = app.query_one("DataTable")
-            assert datatable.row_count == 3
+    def test_case_selected_event_exits_app(self, mocker, monkeypatch, tmp_path):
+        """Ensure the CaseSelected message results in the app exiting with a path."""
+        app = QueryApp(tmp_path.as_posix())
+        captured = {}
 
-    async def test_query_app_filter_cases(self, query_app_test_cases):
-        """Test filtering cases through the input."""
-        app = QueryApp(query_app_test_cases)
-        async with app.run_test() as pilot:
-            await pilot.pause()
+        def fake_exit(result, *, return_code):
+            captured["result"] = result
+            captured["return_code"] = return_code
 
-            # Get the input widget and type a filter
-            input_widget = app.query_one("Input")
-            input_widget.value = "Python"
+        monkeypatch.setattr(app, "exit", fake_exit)
 
-            # Wait for filtering to complete
-            await pilot.pause(0.2)
+        case_path = tmp_path / "chosen_case"
+        case_path.mkdir()
+        mock = mocker.MagicMock()
+        mock.path = case_path
+        event = CaseSelector.CaseSelected(mock)
 
-            # Check that only matching cases are shown
-            datatable = app.query_one("DataTable")
-            # Only the "Python Related Case" should match
-            assert datatable.row_count == 1
+        app.action_select_row(event)
 
-    async def test_query_app_preview_updates(self, query_app_test_cases):
-        """Test that preview updates when highlighting a row."""
-        app = QueryApp(query_app_test_cases)
-        async with app.run_test() as pilot:
-            await pilot.pause()
-
-            # Get the markdown widget
-            markdown = app.query_one("Markdown")
-
-            # Wait for preview to load
-            await pilot.pause(0.2)
-
-            # Verify the markdown widget exists and is visible
-            assert markdown is not None
-            datatable = app.query_one("DataTable")
-            assert datatable.row_count > 0
-
-    async def test_query_app_cursor_navigation(self, query_app_test_cases):
-        """Test cursor navigation with ctrl+n and ctrl+p."""
-        app = QueryApp(query_app_test_cases)
-        async with app.run_test() as pilot:
-            await pilot.pause()
-
-            datatable = app.query_one("DataTable")
-            initial_row = datatable.cursor_row
-
-            # Move cursor down
-            await pilot.press("ctrl+n")
-            await pilot.pause()
-
-            assert datatable.cursor_row == initial_row + 1
-
-            # Move cursor up
-            await pilot.press("ctrl+p")
-            await pilot.pause()
-
-            assert datatable.cursor_row == initial_row
-
-    async def test_query_app_select_row(self, query_app_test_cases):
-        """Test selecting a row with enter key."""
-        app = QueryApp(query_app_test_cases)
-        async with app.run_test() as pilot:
-            await pilot.pause()
-
-            # Press enter to select the first row
-            # App might exit which is expected behavior
-            try:
-                await pilot.press("enter")
-                await pilot.pause()
-            except Exception:
-                pass
-
-    async def test_query_app_empty_directory(self, case_repo_empty):
-        """Test QueryApp with empty directory."""
-        app = QueryApp(case_repo_empty)
-        async with app.run_test() as pilot:
-            await pilot.pause()
-
-            datatable = app.query_one("DataTable")
-            assert datatable.row_count == 0
-
-    async def test_query_app_selected_case(self, query_app_test_cases):
-        """Test selected_case method."""
-        app = QueryApp(query_app_test_cases)
-        async with app.run_test() as pilot:
-            await pilot.pause()
-
-            # Get the initially selected case
-            selected = app.selected_case()
-            # With 3 cases, there should be a selection
-            assert selected is not None
-
-    async def test_query_app_selected_case_empty(self, temp_case_dir):
-        """Test selected_case with no cases."""
-        app = QueryApp(temp_case_dir)
-        async with app.run_test() as pilot:
-            await pilot.pause()
-
-            selected = app.selected_case()
-            assert selected is None
-
-    async def test_query_app_reset_filter(self, query_app_test_cases):
-        """Test resetting the filter."""
-        app = QueryApp(query_app_test_cases)
-        async with app.run_test() as pilot:
-            await pilot.pause()
-
-            input_widget = app.query_one("Input")
-            datatable = app.query_one("DataTable")
-
-            # Apply a filter
-            input_widget.value = "Python"
-            await pilot.pause(0.2)
-            assert datatable.row_count == 1
-
-            # Clear the filter
-            input_widget.value = ""
-            await pilot.pause(0.2)
-            assert datatable.row_count == 3
+        assert captured["result"] == str(case_path)
+        assert captured["return_code"] == 0

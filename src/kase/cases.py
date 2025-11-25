@@ -22,6 +22,12 @@ class Case(BaseModel):
         with (path / "case.json").open("w") as f:
             json.dump(metadata, f, indent=4)
 
+    @classmethod
+    def from_folder(cls, folder: Path) -> "Case":
+        with (folder / "case.json").open("r") as f:
+            data = json.load(f)
+            return cls(path=folder, **data)
+
 
 class CaseRepo:
     TITLE_RE = re.compile(r"^\[(?P<sf>\d+)\] (?P<title>.+)$")
