@@ -81,12 +81,6 @@ Kase expects and creates the following structure:
 └── ...
 ```
 
-You can add additional files and folders within each case directory as needed:
-- `notes.md` - Your investigation notes
-- `logs/` - Log files
-- `screenshots/` - Screenshots and images
-- `attachments/` - Case attachments
-
 ### Case Metadata (`case.json`)
 
 Each case directory contains a `case.json` file with structured metadata:
