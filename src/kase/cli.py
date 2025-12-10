@@ -46,19 +46,26 @@ def init():
 
 
 @main.command()
-def shell():
+def shell(
+    jump_cmd: str = typer.Argument(
+        "jk",
+        help="Name of the shell function to create.",
+    ),
+):
     """
     Print the shell integration code to stdout.
 
     This code can be sourced in your shell configuration file
-    to enable the cd functionality.
+    to enable the cd functionality. It will create a shell
+    function named JUMP_CMD that will jump to the selected
+    case directory.
     """
     print(
         textwrap.dedent(
-            """
-        jk() {
+            f"""
+        {jump_cmd}() {{
             dir=$(\\kase query) && cd "$dir"
-        }
+        }}
         """
         )
     )
