@@ -39,9 +39,6 @@ class TestCLI:
 
         assert result.exit_code == 0
         mock_query_app.assert_called_once()
-        # Check that it was called with default or env variable
-        call_args = mock_query_app.call_args[0]
-        assert len(call_args) > 0
 
     @patch("kase.cli.QueryApp")
     def test_query_command_custom_case_dir(self, mock_query_app):
@@ -50,10 +47,12 @@ class TestCLI:
         mock_app_instance.run.return_value = None
         mock_query_app.return_value = mock_app_instance
 
-        result = runner.invoke(main, ["query", "/custom/path"])
+        result = runner.invoke(main, ["query", "--case-dir", "/custom/path"])
 
         assert result.exit_code == 0
-        mock_query_app.assert_called_once_with("/custom/path")
+        mock_query_app.assert_called_once_with(
+            initial_prompt="", case_dir="/custom/path"
+        )
 
     @patch("kase.cli.QueryApp")
     def test_query_command_with_result(self, mock_query_app):

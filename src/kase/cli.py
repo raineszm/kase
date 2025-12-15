@@ -11,7 +11,11 @@ main = typer.Typer()
 
 @main.command()
 def query(
-    case_dir: str | None = typer.Argument(
+    initial_prompt: str = typer.Argument(
+        "",
+        help="Initial prompt for the fuzzy finder.",
+    ),
+    case_dir: str | None = typer.Option(
         None,
         help="Directory containing case files."
         "Defaults to $CASE_DIR environment variable or ~/cases",
@@ -27,7 +31,7 @@ def query(
     if case_dir is None:
         case_dir = environ.get("CASE_DIR", "~/cases")
 
-    app = QueryApp(case_dir)
+    app = QueryApp(initial_prompt=initial_prompt, case_dir=case_dir)
     result = app.run()
     if result is not None:
         print(result)

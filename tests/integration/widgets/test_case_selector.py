@@ -18,7 +18,7 @@ class CaseSelectorHarness(App[None]):
         self.events = []
 
     def compose(self) -> ComposeResult:
-        yield CaseSelector(self._case_dir)
+        yield CaseSelector(case_dir=self._case_dir)
 
     @on(CaseSelector.CaseSelected)
     async def on_case_selected(self, event: CaseSelector.CaseSelected) -> None:

@@ -37,11 +37,11 @@ class CaseSelector(Widget):
     }
     """
 
-    def __init__(self, case_dir: str = "~/cases"):
+    def __init__(self, initial_prompt: str = "", case_dir: str = "~/cases"):
         super().__init__()
 
         self.repo = CaseRepo(case_dir)
-        self.filter_text = None
+        self.filter_text = initial_prompt
         self.update_task = None
 
     @override
@@ -51,7 +51,9 @@ class CaseSelector(Widget):
                 cursor_type="row", zebra_stripes=True, classes="caselist"
             )
             yield Markdown(classes="preview")
-        yield Input(placeholder="Filter", compact=True)
+        yield Input(
+            self.filter_text, placeholder="Filter", compact=True, select_on_focus=False
+        )
 
     def on_mount(self):
         _ = self.query_one(DataTable).add_columns("SF ID", "Title")
@@ -83,7 +85,7 @@ class CaseSelector(Widget):
 
     def _reset_table(self):
         for case in self.repo.cases:
-            self._add_row(case)
+            _add_row(self.query_one(DataTable), case)
 
     def _apply_filter(self, filter_text: str, selected: str | None):
         caselist = self.query_one(DataTable)
@@ -97,7 +99,7 @@ class CaseSelector(Widget):
                 / 100.0
             )
             if score > 0.8:
-                self._add_row(case)
+                _add_row(caselist, case)
                 if selected is not None and str(case.path) == selected:
                     caselist.move_cursor(row=caselist.get_row_index(selected))
         if selected is None:
@@ -121,9 +123,10 @@ class CaseSelector(Widget):
         if case_folder := self.selected_case():
             self.post_message(self.CaseSelected(Case.from_folder(Path(case_folder))))
 
-    def _add_row(self, case: Case):
-        _ = self.query_one(DataTable).add_row(
-            case.sf,
-            case.title,
-            key=str(case.path),
-        )
+
+def _add_row(table: DataTable, case: Case):
+    _ = table.add_row(
+        case.sf,
+        case.title,
+        key=str(case.path),
+    )
