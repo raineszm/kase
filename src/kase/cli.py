@@ -1,5 +1,6 @@
 import textwrap
 from os import environ
+from typing import Annotated
 
 import typer
 
@@ -11,15 +12,19 @@ main = typer.Typer()
 
 @main.command()
 def query(
-    initial_prompt: str = typer.Argument(
-        "",
-        help="Initial prompt for the fuzzy finder.",
-    ),
-    case_dir: str | None = typer.Option(
-        None,
-        help="Directory containing case files."
-        "Defaults to $CASE_DIR environment variable or ~/cases",
-    ),
+    initial_prompt: Annotated[
+        str,
+        typer.Argument(
+            help="Initial prompt for the fuzzy finder.",
+        ),
+    ] = "",
+    case_dir: Annotated[
+        str | None,
+        typer.Option(
+            help="Directory containing case files."
+            "Defaults to $CASE_DIR environment variable or ~/cases",
+        ),
+    ] = None,
 ):
     """
     Pop up a fuzzy finder to select a case to cd into.
@@ -51,10 +56,12 @@ def init():
 
 @main.command()
 def shell(
-    jump_cmd: str = typer.Argument(
-        "jk",
-        help="Name of the shell function to create.",
-    ),
+    jump_cmd: Annotated[
+        str,
+        typer.Argument(
+            help="Name of the shell function to create.",
+        ),
+    ] = "jk",
 ):
     """
     Print the shell integration code to stdout.
