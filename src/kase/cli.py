@@ -1,3 +1,4 @@
+import importlib.metadata
 import textwrap
 from typing import Annotated
 
@@ -91,7 +92,21 @@ def shell(
     )
 
 
+def version_callback(print_version: bool):
+    if print_version:
+        print(f"kase {importlib.metadata.version('kase')}")
+        raise typer.Exit()
+
+
 @main.callback(invoke_without_command=True)
-def default(ctx: typer.Context):
+def default(
+    ctx: typer.Context,
+    version: Annotated[
+        bool,
+        typer.Option(
+            help="Print the version and exit.", callback=version_callback, is_eager=True
+        ),
+    ] = False,
+):
     if ctx.invoked_subcommand is None:
         query()
