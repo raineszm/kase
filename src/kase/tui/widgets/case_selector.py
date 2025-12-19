@@ -37,7 +37,7 @@ class CaseSelector(Widget):
     }
     """
 
-    def __init__(self, initial_prompt: str = "", case_dir: str = "~/cases"):
+    def __init__(self, case_dir: str, initial_prompt: str = ""):
         super().__init__()
 
         self.repo = CaseRepo(case_dir)

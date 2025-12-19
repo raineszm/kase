@@ -9,7 +9,7 @@ from ..types import AppOptions
 
 
 class InitApp(App[str]):
-    def __init__(self, case_dir: str = "~/cases", **kwargs: Unpack[AppOptions]):
+    def __init__(self, case_dir: str, **kwargs: Unpack[AppOptions]):
         super().__init__(**kwargs)
 
         self.repo = CaseRepo(case_dir)

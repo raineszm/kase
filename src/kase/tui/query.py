@@ -16,8 +16,8 @@ class QueryApp(App[str]):
 
     def __init__(
         self,
+        case_dir: str,
         initial_prompt: str = "",
-        case_dir: str = "~/cases",
         **kwargs: Unpack[AppOptions],
     ):
         super().__init__(**kwargs)

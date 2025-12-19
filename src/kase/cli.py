@@ -1,11 +1,13 @@
 import textwrap
-from os import environ
 from typing import Annotated
 
 import typer
 
 from .tui.init import InitApp
 from .tui.query import QueryApp
+
+DEFAULT_CASE_DIR = "~/cases"
+
 
 main = typer.Typer()
 
@@ -19,12 +21,13 @@ def query(
         ),
     ] = "",
     case_dir: Annotated[
-        str | None,
+        str,
         typer.Option(
             help="Directory containing case files."
             "Defaults to $CASE_DIR environment variable or ~/cases",
+            envvar="CASE_DIR",
         ),
-    ] = None,
+    ] = DEFAULT_CASE_DIR,
 ):
     """
     Pop up a fuzzy finder to select a case to cd into.
@@ -33,9 +36,6 @@ def query(
     must have been set up.
     """
 
-    if case_dir is None:
-        case_dir = environ.get("CASE_DIR", "~/cases")
-
     app = QueryApp(initial_prompt=initial_prompt, case_dir=case_dir)
     result = app.run()
     if result is not None:
@@ -43,13 +43,22 @@ def query(
 
 
 @main.command()
-def init():
+def init(
+    case_dir: Annotated[
+        str,
+        typer.Option(
+            help="Directory containing case files."
+            "Defaults to $CASE_DIR environment variable or ~/cases",
+            envvar="CASE_DIR",
+        ),
+    ] = DEFAULT_CASE_DIR,
+):
     """
     Create a new case.json file in the appropriate directory.
 
     Creates the directory if it does not exist.
     """
-    app = InitApp("~/cases")
+    app = InitApp(case_dir)
     if result := app.run():
         print(result)
 

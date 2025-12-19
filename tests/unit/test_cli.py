@@ -1,10 +1,11 @@
 """Unit tests for the CLI module."""
 
+import os
 from unittest.mock import MagicMock, patch
 
 from typer.testing import CliRunner
 
-from kase.cli import main
+from kase.cli import DEFAULT_CASE_DIR, main
 
 runner = CliRunner()
 
@@ -67,6 +68,7 @@ class TestCLI:
         assert "/path/to/case" in result.stdout
 
     @patch("kase.cli.InitApp")
+    @patch.dict(os.environ, {}, clear=True)
     def test_init_command(self, mock_init_app):
         """Test init command."""
         mock_app_instance = MagicMock()
@@ -76,7 +78,21 @@ class TestCLI:
         result = runner.invoke(main, ["init"])
 
         assert result.exit_code == 0
-        mock_init_app.assert_called_once_with("~/cases")
+        mock_init_app.assert_called_once_with(DEFAULT_CASE_DIR)
+
+    @patch("kase.cli.InitApp")
+    def test_init_command_honors_env_case_dir(self, mock_init_app):
+        """Test init command uses CASE_DIR environment variable when provided."""
+        mock_app_instance = MagicMock()
+        mock_app_instance.run.return_value = None
+        mock_init_app.return_value = mock_app_instance
+        env_case_dir = "/custom/env/path"
+
+        with patch.dict(os.environ, {"CASE_DIR": env_case_dir}, clear=True):
+            result = runner.invoke(main, ["init"])
+
+        assert result.exit_code == 0
+        mock_init_app.assert_called_once_with(env_case_dir)
 
     @patch("kase.cli.InitApp")
     def test_init_command_with_result(self, mock_init_app):
