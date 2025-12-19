@@ -53,6 +53,8 @@ export CASE_DIR="~/my-cases"  # defaults to ~/cases
    jk  # fuzzy search and cd to selected case
    ```
 
+![Screenshot of Kase fuzzy-finder](tests/integration/__snapshots__/test_query_app/TestQueryApp.test_query_app_compose_snapshot.raw)
+
 ## Usage
 
 ### Commands
