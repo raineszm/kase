@@ -38,9 +38,42 @@ def query(
     """
 
     app = QueryApp(initial_prompt=initial_prompt, case_dir=case_dir)
-    result = app.run()
-    if result is not None:
-        print(result)
+    case = app.run()
+    if case is not None:
+        print(str(case.path))
+
+
+@main.command()
+def punch(
+    initial_prompt: Annotated[
+        str,
+        typer.Argument(
+            help="Initial prompt for the fuzzy finder.",
+        ),
+    ] = "",
+    case_dir: Annotated[
+        str,
+        typer.Option(
+            help="Directory containing case files."
+            "Defaults to $CASE_DIR environment variable or ~/cases",
+            envvar="CASE_DIR",
+        ),
+    ] = DEFAULT_CASE_DIR,
+    max_length: Annotated[
+        int,
+        typer.Option(
+            help="Maximum length of the case title to display.",
+        ),
+    ] = 50,
+):
+    app = QueryApp(initial_prompt=initial_prompt, case_dir=case_dir)
+    case = app.run()
+    if case is None:
+        return
+    title = case.title
+    if len(title) > max_length:
+        title = title[:max_length] + "..."
+    print(f"[{case.sf}] {title}")
 
 
 @main.command()

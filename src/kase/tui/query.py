@@ -4,13 +4,14 @@ from textual import on
 from textual.app import App
 from textual.widgets import Footer, Header
 
+from kase.cases import Case
 from kase.tui.widgets.case_selector import CaseSelector
 
 from ..types import AppOptions
 
 
 @final
-class QueryApp(App[str]):
+class QueryApp(App[Case]):
     TITLE = "Your cases!"
     COMMAND_PALETTE_BINDING = "ctrl+shift+p"
 
@@ -36,4 +37,4 @@ class QueryApp(App[str]):
 
     @on(CaseSelector.CaseSelected)
     def action_select_row(self, event: CaseSelector.CaseSelected):
-        cast(QueryApp, self.app).exit(str(event.case.path), return_code=0)
+        cast(QueryApp, self.app).exit(event.case, return_code=0)

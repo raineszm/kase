@@ -1,0 +1,9 @@
+kind: Added
+body: |
+  punch command
+
+  Output the title line for a case in a format ready
+  to be passed to punch e.g.,
+
+  punch add -t 12:34 case : "$(kase punch)" : my notes
+time: 2026-01-11T13:47:25.374015611-06:00
