@@ -1,10 +1,11 @@
+from collections import OrderedDict
 from typing import Unpack, cast, final, override
 
 from textual import on
 from textual.app import App
 from textual.widgets import Footer, Header
 
-from kase.cases import Case
+from kase.cases import Case, CaseRepo
 from kase.tui.widgets.case_selector import CaseSelector
 
 from ..types import AppOptions
@@ -23,7 +24,7 @@ class QueryApp(App[Case]):
     ):
         super().__init__(**kwargs)
 
-        self.case_dir = case_dir
+        self.repo = CaseRepo(case_dir)
         self._initial_prompt = initial_prompt
 
     @override
@@ -31,7 +32,7 @@ class QueryApp(App[Case]):
         yield Header()
         yield CaseSelector(
             initial_prompt=self._initial_prompt,
-            case_dir=self.case_dir,
+            cases=OrderedDict({case.sf: case for case in self.repo.cases}),
         )
         yield Footer()
 

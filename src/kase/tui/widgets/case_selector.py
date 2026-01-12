@@ -1,5 +1,5 @@
 import asyncio
-from pathlib import Path
+from collections import OrderedDict
 from typing import override
 
 from rapidfuzz import utils
@@ -10,7 +10,7 @@ from textual.message import Message
 from textual.widget import Widget
 from textual.widgets import DataTable, Input, Markdown
 
-from ...cases import Case, CaseRepo
+from ...cases import Case
 
 
 class CaseSelector(Widget):
@@ -37,10 +37,10 @@ class CaseSelector(Widget):
     }
     """
 
-    def __init__(self, case_dir: str, initial_prompt: str = ""):
+    def __init__(self, cases: OrderedDict[str, Case], initial_prompt: str = ""):
         super().__init__()
 
-        self.repo = CaseRepo(case_dir)
+        self.cases = cases
         self.filter_text = initial_prompt
         self.update_task = None
 
@@ -61,12 +61,13 @@ class CaseSelector(Widget):
         _ = self.query_one(Input).focus()
 
     async def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted):
-        case_folder = event.row_key.value
+        case_key = event.row_key.value
         preview = self.query_one(Markdown)
-        if case_folder is None:
+        if case_key is None:
             await preview.update("No case selected")
         else:
-            await preview.update(self.repo.case_preview(case_folder))
+            case = self.cases[case_key]
+            await preview.update(case.preview)
 
     async def on_input_changed(self, event: Input.Changed):
         self.filter_text = event.value
@@ -84,12 +85,12 @@ class CaseSelector(Widget):
         return self._apply_filter(self.filter_text, selected)
 
     def _reset_table(self):
-        for case in self.repo.cases:
+        for case in self.cases.values():
             _add_row(self.query_one(DataTable), case)
 
-    def _apply_filter(self, filter_text: str, selected: str | None):
+    def _apply_filter(self, filter_text: str, selected: Case | None):
         caselist = self.query_one(DataTable)
-        for case in self.repo.cases:
+        for case in self.cases.values():
             score = (
                 partial_ratio(
                     " ".join([case.sf, case.lp, case.title, case.desc]),
@@ -100,18 +101,23 @@ class CaseSelector(Widget):
             )
             if score > 0.8:
                 _add_row(caselist, case)
-                if selected is not None and str(case.path) == selected:
-                    caselist.move_cursor(row=caselist.get_row_index(selected))
+                if selected is not None and case == selected:
+                    caselist.move_cursor(row=caselist.get_row_index(selected.sf))
         if selected is None:
             caselist.move_cursor(row=0)
 
-    def selected_case(self) -> str | None:
+    def selected_case(self) -> Case | None:
         caselist = self.query_one(DataTable)
         if caselist.row_count == 0:
             return None
         # Typechecker doesn't know that Reactive[T] casts to T
         # noinspection PyTypeChecker
-        return caselist.coordinate_to_cell_key(caselist.cursor_coordinate).row_key.value
+        if (
+            case_key := caselist.coordinate_to_cell_key(
+                caselist.cursor_coordinate
+            ).row_key.value
+        ) is not None:
+            return self.cases.get(case_key)
 
     def action_cursor_up(self):
         self.query_one(DataTable).action_cursor_up()
@@ -120,13 +126,13 @@ class CaseSelector(Widget):
         self.query_one(DataTable).action_cursor_down()
 
     def action_select_row(self):
-        if case_folder := self.selected_case():
-            self.post_message(self.CaseSelected(Case.from_folder(Path(case_folder))))
+        if case := self.selected_case():
+            self.post_message(self.CaseSelected(case))
 
 
 def _add_row(table: DataTable, case: Case):
     _ = table.add_row(
         case.sf,
         case.title,
-        key=str(case.path),
+        key=str(case.sf),
     )

@@ -28,6 +28,32 @@ class Case(BaseModel):
             data = json.load(f)
             return cls(path=folder, **data)
 
+    @property
+    def preview(self) -> str:
+        return textwrap.dedent(
+            """
+            # [{sf}] {title}
+
+            {desc}
+            """
+        ).format(sf=self.sf, title=self.title, desc=self.desc)
+
+    @property
+    def title(self) -> str:
+        return self.title
+
+    @property
+    def description(self) -> str:
+        return self.desc
+
+    @property
+    def source_file(self) -> str:
+        return self.sf
+
+    @property
+    def link(self) -> str:
+        return self.lp
+
 
 class CaseRepo:
     TITLE_RE = re.compile(r"^\[(?P<sf>\d+)\] (?P<title>.+)$")
@@ -50,16 +76,8 @@ class CaseRepo:
             data = json.load(f)
             return Case(path=meta.parent, **data)
 
-    def case_preview(self, path: str) -> str:
-        meta = Path(path) / "case.json"
-        data = self._load_meta(meta)
-        return textwrap.dedent(
-            """
-            # [{sf}] {title}
-
-            {desc}
-            """
-        ).format(sf=data.sf, title=data.title, desc=data.desc)
+    def open_case(self, case_folder: Path) -> Case:
+        return self._load_meta(case_folder / "case.json")
 
     def create_case(self, name: str, lp: str, description: str) -> bool:
         match = self.TITLE_RE.match(name)
