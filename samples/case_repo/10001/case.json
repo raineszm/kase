@@ -1,0 +1,6 @@
+{
+    "title": "Kernel panic on boot after upgrade to 24.04",
+    "desc": "Customer reports kernel panic immediately after upgrading from 22.04 to 24.04. System fails to boot with error 'unable to mount root fs'. Recovery mode also fails.",
+    "sf": "10001",
+    "lp": "2045123"
+}

@@ -1,0 +1,6 @@
+{
+    "title": "LXD container fails to start with storage error",
+    "desc": "LXD containers fail to start with 'Error: Failed to run: zfs create' message. ZFS pool appears healthy. Issue affects only new container creation, existing containers work fine.",
+    "sf": "10005",
+    "lp": "2112789"
+}

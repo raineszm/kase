@@ -1,0 +1,6 @@
+{
+    "title": "AppArmor denials blocking application startup",
+    "desc": "Custom application fails to start with permission denied errors. AppArmor audit logs show multiple denials for file access and network operations. Need to create appropriate AppArmor profile.",
+    "sf": "10004",
+    "lp": ""
+}

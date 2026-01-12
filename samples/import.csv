@@ -1,0 +1,8 @@
+Case Number,Subject,Description
+20001,GRUB bootloader corruption after power loss,System fails to boot after unexpected power loss. GRUB rescue prompt appears with 'unknown filesystem' error. Customer needs assistance recovering the bootloader.
+20002,Memory pressure causing OOM kills,Production server experiencing frequent OOM kills despite having 64GB RAM. Multiple critical services being killed. Need to tune kernel memory parameters.
+20003,Systemd service dependency ordering issue,Custom service fails to start on boot because it starts before its dependencies are ready. Adding After= directives has not resolved the issue.
+20004,Disk I/O performance degradation,Customer reports significant disk I/O performance drop after kernel upgrade. iostat shows high await times. NVMe drives appear to be running in degraded mode.
+20005,SSH connection drops after 10 minutes,All SSH connections to server drop exactly 10 minutes after establishing. TCPKeepAlive and ClientAliveInterval settings have been adjusted without success.
+20006,Package dependency conflicts blocking upgrade,apt upgrade fails with unresolvable dependency conflicts. Multiple packages from third-party PPA are blocking the upgrade path.
+20007,Cron jobs not executing on schedule,Scheduled cron jobs are not running at their specified times. cron daemon is running and crontab entries appear correct. No errors in syslog.
