@@ -26,7 +26,7 @@ class Case(BaseModel):
             return False
         # Create directory if it doesn't exist
         if not path.exists():
-            path.mkdir()
+            path.mkdir(parents=True, exist_ok=True)
         with metadata_file.open("w") as f:
             json.dump(metadata, f, indent=4)
         return True
