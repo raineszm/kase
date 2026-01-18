@@ -16,10 +16,10 @@ def write_salesforce_csv(path: Path, rows: list[dict[str, str]]) -> None:
         writer.writerows(rows)
 
 
-def test_cases_yield_case_objects(tmp_path):
-    csv_path = tmp_path / "cases.csv"
-    case_dir = tmp_path / "cases"
-    case_dir.mkdir()
+def test_cases_yield_case_objects(fs):
+    csv_path = Path("/cases.csv")
+    case_dir = Path("/cases")
+    fs.create_dir(case_dir)
 
     write_salesforce_csv(
         csv_path,
@@ -47,10 +47,10 @@ def test_cases_yield_case_objects(tmp_path):
     assert cases[1].desc == "Second description"
 
 
-def test_cases_strip_whitespace(tmp_path):
-    csv_path = tmp_path / "cases.csv"
-    case_dir = tmp_path / "cases"
-    case_dir.mkdir()
+def test_cases_strip_whitespace(fs):
+    csv_path = Path("/cases.csv")
+    case_dir = Path("/cases")
+    fs.create_dir(case_dir)
 
     write_salesforce_csv(
         csv_path,
@@ -72,12 +72,12 @@ def test_cases_strip_whitespace(tmp_path):
     assert case.path == case_dir / "0003"
 
 
-def test_missing_header_row_raises(tmp_path):
-    csv_path = tmp_path / "cases.csv"
-    case_dir = tmp_path / "cases"
-    case_dir.mkdir()
+def test_missing_header_row_raises(fs):
+    csv_path = Path("/cases.csv")
+    case_dir = Path("/cases")
+    fs.create_dir(case_dir)
 
-    csv_path.write_text("")
+    fs.create_file(csv_path, contents="")
 
     importer = SalesforceCSV(csv_path, case_dir)
 
@@ -85,12 +85,12 @@ def test_missing_header_row_raises(tmp_path):
         list(importer.cases())
 
 
-def test_missing_required_column_in_header(tmp_path):
-    csv_path = tmp_path / "cases.csv"
-    case_dir = tmp_path / "cases"
-    case_dir.mkdir()
+def test_missing_required_column_in_header(fs):
+    csv_path = Path("/cases.csv")
+    case_dir = Path("/cases")
+    fs.create_dir(case_dir)
 
-    csv_path.write_text("Case Number,Subject\n0001,Missing description\n")
+    fs.create_file(csv_path, contents="Case Number,Subject\n0001,Missing description\n")
 
     importer = SalesforceCSV(csv_path, case_dir)
 
@@ -98,10 +98,10 @@ def test_missing_required_column_in_header(tmp_path):
         list(importer.cases())
 
 
-def test_missing_value_in_row_raises(tmp_path):
-    csv_path = tmp_path / "cases.csv"
-    case_dir = tmp_path / "cases"
-    case_dir.mkdir()
+def test_missing_value_in_row_raises(fs):
+    csv_path = Path("/cases.csv")
+    case_dir = Path("/cases")
+    fs.create_dir(case_dir)
 
     write_salesforce_csv(
         csv_path,

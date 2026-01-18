@@ -9,9 +9,9 @@ from kase.tui.init import InitApp
 class TestInitApp:
     """Integration tests for InitApp."""
 
-    def test_init_app_compose(self, snap_compare, temp_case_dir):
+    def test_init_app_compose(self, snap_compare, temp_case_dir_real):
         """Test that InitApp composes correctly using snapshot testing."""
-        app = InitApp(temp_case_dir)
+        app = InitApp(temp_case_dir_real)
         # Use Textual's snap_compare for snapshot testing
         assert snap_compare(app)
 

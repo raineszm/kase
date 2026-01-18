@@ -22,7 +22,10 @@ class TestImporterApp:
     """Integration tests covering ImporterApp wiring and events."""
 
     def test_importer_app_compose_snapshot(self, snap_compare, tmp_path):
-        """Ensure ImporterApp composes to the expected widget tree."""
+        """Ensure ImporterApp composes to the expected widget tree.
+
+        Uses real filesystem because snapshot tests need to write real files.
+        """
         case_dir = tmp_path / "cases"
         case_dir.mkdir()
         csv_path = tmp_path / "cases.csv"
@@ -40,11 +43,11 @@ class TestImporterApp:
         app = ImporterApp(case_dir=case_dir.as_posix(), csv_file=csv_path)
         assert snap_compare(app)
 
-    async def test_importer_app_mounts_core_widgets(self, tmp_path):
+    async def test_importer_app_mounts_core_widgets(self, fs):
         """Verify ImporterApp wires up the header, selector, and footer."""
-        case_dir = tmp_path / "cases"
-        case_dir.mkdir()
-        csv_path = tmp_path / "cases.csv"
+        case_dir = Path("/cases")
+        fs.create_dir(case_dir)
+        csv_path = Path("/cases.csv")
         write_salesforce_csv(
             csv_path,
             [
@@ -63,24 +66,25 @@ class TestImporterApp:
             assert app.query_one(CaseSelector) is not None
             assert app.query_one(Footer) is not None
 
-    async def test_importer_app_excludes_existing_cases(self, tmp_path):
+    async def test_importer_app_excludes_existing_cases(self, fs):
         """Existing case IDs should be excluded from the selection list."""
-        case_dir = tmp_path / "cases"
-        case_dir.mkdir()
+        case_dir = Path("/cases")
+        fs.create_dir(case_dir)
         existing_case_dir = case_dir / "1001"
-        existing_case_dir.mkdir()
-        (existing_case_dir / "case.json").write_text(
-            json.dumps(
+        fs.create_dir(existing_case_dir)
+        fs.create_file(
+            existing_case_dir / "case.json",
+            contents=json.dumps(
                 {
                     "title": "Existing Case",
                     "desc": "Existing description",
                     "sf": "1001",
                     "lp": "",
                 }
-            )
+            ),
         )
 
-        csv_path = tmp_path / "cases.csv"
+        csv_path = Path("/cases.csv")
         write_salesforce_csv(
             csv_path,
             [
@@ -105,11 +109,11 @@ class TestImporterApp:
 
             assert datatable.row_count == 1
 
-    def test_cases_submitted_event_exits_app(self, mocker, monkeypatch, tmp_path):
+    def test_cases_submitted_event_exits_app(self, mocker, monkeypatch, fs):
         """Ensure the CasesSubmitted message exits the app with selected cases."""
-        case_dir = tmp_path / "cases"
-        case_dir.mkdir()
-        csv_path = tmp_path / "cases.csv"
+        case_dir = Path("/cases")
+        fs.create_dir(case_dir)
+        csv_path = Path("/cases.csv")
         write_salesforce_csv(
             csv_path,
             [

@@ -123,6 +123,7 @@ class TestCLI:
     @patch("kase.cli.ImporterApp")
     def test_import_command_creates_new_case(self, mock_importer_app, tmp_path):
         """Test import command writes metadata when case is new."""
+        # Use tmp_path here because pyfakefs breaks Typer's Path type introspection
         csv_file = tmp_path / "cases.csv"
         csv_file.write_text("")
         case = MagicMock()
@@ -145,6 +146,7 @@ class TestCLI:
         self, mock_importer_app, tmp_path
     ):
         """Test import command warns and skips when decline overwrite."""
+        # Use tmp_path here because pyfakefs breaks Typer's Path type introspection
         csv_file = tmp_path / "cases.csv"
         csv_file.write_text("")
         metadata_dir = tmp_path / "12345"
@@ -171,6 +173,7 @@ class TestCLI:
         self, mock_importer_app, tmp_path
     ):
         """Test import command overwrites metadata when confirmed."""
+        # Use tmp_path here because pyfakefs breaks Typer's Path type introspection
         csv_file = tmp_path / "cases.csv"
         csv_file.write_text("")
         metadata_dir = tmp_path / "12345"
