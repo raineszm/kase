@@ -86,6 +86,9 @@ def import_case(
     csv_file: Annotated[
         Path,
         typer.Argument(
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
             help="Path to the CSV file containing case data.",
         ),
     ],
