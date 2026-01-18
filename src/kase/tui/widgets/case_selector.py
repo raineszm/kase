@@ -200,13 +200,33 @@ class CaseSelector(Widget):
         if not self.exclude_ids:
             return
 
+        # Preserve currently selected case (if any) so we can restore the cursor
+        selected = self.selected_case()
+        selected_key = str(selected.sf) if selected is not None else None
+
         self.hide_excluded = not self.hide_excluded
-        _ = self.query_one(DataTable).clear()
+        table = self.query_one(DataTable)
+        _ = table.clear()
         if self.filter_text:
             self._apply_filter(self.filter_text, None)
         else:
             self._reset_table()
 
+        # Restore cursor to the previously selected case if it is still visible
+        if selected_key is not None and table.row_count:
+            try:
+                row_index = table.get_row_index(selected_key)
+            except KeyError:
+                # The previously selected case is no longer present (e.g. excluded/filtered out)
+                return
+
+            # Keep the current column if possible, otherwise default to the first column
+            column_index = (
+                table.cursor_coordinate.column
+                if table.column_count and table.cursor_coordinate is not None
+                else 0
+            )
+            table.move_cursor(row=row_index, column=column_index)
     def check_action(self, action: str, parameters: object) -> bool | None:
         if action == "toggle_mark":
             return self.multiselect_enabled
