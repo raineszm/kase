@@ -1,7 +1,6 @@
 """Unit tests for the cases module."""
 
 import json
-import tempfile
 from pathlib import Path
 
 from kase.cases import Case, CaseRepo
@@ -43,31 +42,31 @@ class TestCase:
         assert case.sf == "1234"
         assert case.lp == ""
 
-    def test_write_metadata(self):
+    def test_write_metadata(self, fs):
         """Test writing metadata to a JSON file."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            path = Path(tmpdir)
-            case = Case(
-                path=path,
-                title="Test Case",
-                desc="Test description",
-                sf="1234",
-                lp="LP#5678",
-            )
+        path = Path("/cases/1234")
+        fs.create_dir(path)
+        case = Case(
+            path=path,
+            title="Test Case",
+            desc="Test description",
+            sf="1234",
+            lp="LP#5678",
+        )
 
-            case.write_metadata()
+        case.write_metadata()
 
-            metadata_file = path / "case.json"
-            assert metadata_file.exists()
+        metadata_file = path / "case.json"
+        assert metadata_file.exists()
 
-            with metadata_file.open("r") as f:
-                data = json.load(f)
+        with metadata_file.open("r") as f:
+            data = json.load(f)
 
-            assert data["title"] == "Test Case"
-            assert data["desc"] == "Test description"
-            assert data["sf"] == "1234"
-            assert data["lp"] == "LP#5678"
-            assert "path" not in data
+        assert data["title"] == "Test Case"
+        assert data["desc"] == "Test description"
+        assert data["sf"] == "1234"
+        assert data["lp"] == "LP#5678"
+        assert "path" not in data
 
 
 class TestCaseRepo:
@@ -83,221 +82,227 @@ class TestCaseRepo:
         repo = CaseRepo("~/test_cases")
         assert not repo.case_dir.startswith("~")
 
-    def test_metadata_property_empty_dir(self):
+    def test_metadata_property_empty_dir(self, fs):
         """Test metadata property with empty directory."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            repo = CaseRepo(tmpdir)
-            assert list(repo.metadata) == []
+        fs.create_dir("/cases")
+        repo = CaseRepo("/cases")
+        assert list(repo.metadata) == []
 
-    def test_metadata_property_with_cases(self):
+    def test_metadata_property_with_cases(self, fs):
         """Test metadata property with existing cases."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            # Create test case directories
-            case1_dir = Path(tmpdir) / "1234"
-            case1_dir.mkdir()
-            case1_meta = case1_dir / "case.json"
-            case1_meta.write_text(
-                json.dumps(
-                    {
-                        "title": "Test Case 1",
-                        "desc": "Description 1",
-                        "sf": "1234",
-                        "lp": "",
-                    }
-                )
-            )
+        fs.create_dir("/cases")
 
-            case2_dir = Path(tmpdir) / "5678"
-            case2_dir.mkdir()
-            case2_meta = case2_dir / "case.json"
-            case2_meta.write_text(
-                json.dumps(
-                    {
-                        "title": "Test Case 2",
-                        "desc": "Description 2",
-                        "sf": "5678",
-                        "lp": "LP#9999",
-                    }
-                )
-            )
+        # Create test case directories
+        case1_dir = Path("/cases/1234")
+        fs.create_dir(case1_dir)
+        fs.create_file(
+            case1_dir / "case.json",
+            contents=json.dumps(
+                {
+                    "title": "Test Case 1",
+                    "desc": "Description 1",
+                    "sf": "1234",
+                    "lp": "",
+                }
+            ),
+        )
 
-            repo = CaseRepo(tmpdir)
-            metadata = list(repo.metadata)
+        case2_dir = Path("/cases/5678")
+        fs.create_dir(case2_dir)
+        fs.create_file(
+            case2_dir / "case.json",
+            contents=json.dumps(
+                {
+                    "title": "Test Case 2",
+                    "desc": "Description 2",
+                    "sf": "5678",
+                    "lp": "LP#9999",
+                }
+            ),
+        )
 
-            assert len(metadata) == 2
-            assert all(m.name == "case.json" for m in metadata)
+        repo = CaseRepo("/cases")
+        metadata = list(repo.metadata)
 
-    def test_cases_property(self):
+        assert len(metadata) == 2
+        assert all(m.name == "case.json" for m in metadata)
+
+    def test_cases_property(self, fs):
         """Test cases property returns Case objects."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            # Create test case directory
-            case_dir = Path(tmpdir) / "1234"
-            case_dir.mkdir()
-            case_meta = case_dir / "case.json"
-            case_meta.write_text(
-                json.dumps(
-                    {
-                        "title": "Test Case",
-                        "desc": "Test description",
-                        "sf": "1234",
-                        "lp": "LP#5678",
-                    }
-                )
-            )
+        fs.create_dir("/cases")
 
-            repo = CaseRepo(tmpdir)
-            cases = list(repo.cases)
+        # Create test case directory
+        case_dir = Path("/cases/1234")
+        fs.create_dir(case_dir)
+        fs.create_file(
+            case_dir / "case.json",
+            contents=json.dumps(
+                {
+                    "title": "Test Case",
+                    "desc": "Test description",
+                    "sf": "1234",
+                    "lp": "LP#5678",
+                }
+            ),
+        )
 
-            assert len(cases) == 1
-            case = cases[0]
-            assert isinstance(case, Case)
-            assert case.title == "Test Case"
-            assert case.desc == "Test description"
-            assert case.sf == "1234"
-            assert case.lp == "LP#5678"
-            assert case.path == case_dir
+        repo = CaseRepo("/cases")
+        cases = list(repo.cases)
 
-    def test_load_meta(self):
+        assert len(cases) == 1
+        case = cases[0]
+        assert isinstance(case, Case)
+        assert case.title == "Test Case"
+        assert case.desc == "Test description"
+        assert case.sf == "1234"
+        assert case.lp == "LP#5678"
+        assert case.path == case_dir
+
+    def test_load_meta(self, fs):
         """Test _load_meta static method."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            case_dir = Path(tmpdir) / "1234"
-            case_dir.mkdir()
-            case_meta = case_dir / "case.json"
-            case_meta.write_text(
-                json.dumps(
-                    {
-                        "title": "Test Case",
-                        "desc": "Test description",
-                        "sf": "1234",
-                        "lp": "",
-                    }
-                )
-            )
+        case_dir = Path("/cases/1234")
+        fs.create_dir(case_dir)
+        case_meta = case_dir / "case.json"
+        fs.create_file(
+            case_meta,
+            contents=json.dumps(
+                {
+                    "title": "Test Case",
+                    "desc": "Test description",
+                    "sf": "1234",
+                    "lp": "",
+                }
+            ),
+        )
 
-            case = CaseRepo._load_meta(case_meta)
+        case = CaseRepo._load_meta(case_meta)
 
-            assert isinstance(case, Case)
-            assert case.title == "Test Case"
-            assert case.desc == "Test description"
-            assert case.sf == "1234"
-            assert case.lp == ""
-            assert case.path == case_dir
+        assert isinstance(case, Case)
+        assert case.title == "Test Case"
+        assert case.desc == "Test description"
+        assert case.sf == "1234"
+        assert case.lp == ""
+        assert case.path == case_dir
 
-    def test_case_preview(self):
+    def test_case_preview(self, fs):
         """Test Case.preview property."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            case_dir = Path(tmpdir) / "1234"
-            case_dir.mkdir()
-            case_meta = case_dir / "case.json"
-            case_meta.write_text(
-                json.dumps(
-                    {
-                        "title": "Test Case",
-                        "desc": "Test description",
-                        "sf": "1234",
-                        "lp": "",
-                    }
-                )
-            )
+        case_dir = Path("/cases/1234")
+        fs.create_dir(case_dir)
+        fs.create_file(
+            case_dir / "case.json",
+            contents=json.dumps(
+                {
+                    "title": "Test Case",
+                    "desc": "Test description",
+                    "sf": "1234",
+                    "lp": "",
+                }
+            ),
+        )
 
-            repo = CaseRepo(tmpdir)
-            case = next(repo.cases)
-            preview = case.preview
+        repo = CaseRepo("/cases")
+        case = next(repo.cases)
+        preview = case.preview
 
-            assert "[1234]" in preview
-            assert "Test Case" in preview
-            assert "Test description" in preview
+        assert "[1234]" in preview
+        assert "Test Case" in preview
+        assert "Test description" in preview
 
-    def test_create_case_success(self):
+    def test_create_case_success(self, fs):
         """Test creating a new case successfully."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            repo = CaseRepo(tmpdir)
-            result = repo.create_case(
-                name="[1234] Test Case",
-                lp="LP#5678",
-                description="Test description",
-            )
+        fs.create_dir("/cases")
 
-            assert result is True
+        repo = CaseRepo("/cases")
+        result = repo.create_case(
+            name="[1234] Test Case",
+            lp="LP#5678",
+            description="Test description",
+        )
 
-            case_dir = Path(tmpdir) / "1234"
-            assert case_dir.exists()
+        assert result is True
 
-            metadata_file = case_dir / "case.json"
-            assert metadata_file.exists()
+        case_dir = Path("/cases/1234")
+        assert case_dir.exists()
 
-            with metadata_file.open("r") as f:
-                data = json.load(f)
+        metadata_file = case_dir / "case.json"
+        assert metadata_file.exists()
 
-            assert data["title"] == "Test Case"
-            assert data["desc"] == "Test description"
-            assert data["sf"] == "1234"
+        with metadata_file.open("r") as f:
+            data = json.load(f)
 
-    def test_create_case_invalid_name_format(self):
+        assert data["title"] == "Test Case"
+        assert data["desc"] == "Test description"
+        assert data["sf"] == "1234"
+
+    def test_create_case_invalid_name_format(self, fs):
         """Test creating a case with invalid name format."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            repo = CaseRepo(tmpdir)
-            result = repo.create_case(
-                name="Invalid Name Format",
-                lp="",
-                description="Test description",
-            )
+        fs.create_dir("/cases")
 
-            assert result is False
+        repo = CaseRepo("/cases")
+        result = repo.create_case(
+            name="Invalid Name Format",
+            lp="",
+            description="Test description",
+        )
 
-    def test_create_case_existing_directory_no_metadata(self):
+        assert result is False
+
+    def test_create_case_existing_directory_no_metadata(self, fs):
         """Test creating a case when directory exists but no case.json."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            # Create the directory first
-            case_dir = Path(tmpdir) / "1234"
-            case_dir.mkdir()
+        fs.create_dir("/cases")
 
-            repo = CaseRepo(tmpdir)
-            result = repo.create_case(
-                name="[1234] Test Case",
-                lp="",
-                description="Test description",
-            )
+        # Create the directory first
+        case_dir = Path("/cases/1234")
+        fs.create_dir(case_dir)
 
-            # Should succeed
-            assert result is True
+        repo = CaseRepo("/cases")
+        result = repo.create_case(
+            name="[1234] Test Case",
+            lp="",
+            description="Test description",
+        )
 
-            # Verify metadata was created
-            metadata_file = case_dir / "case.json"
-            assert metadata_file.exists()
+        # Should succeed
+        assert result is True
 
-    def test_create_case_existing_metadata(self):
+        # Verify metadata was created
+        metadata_file = case_dir / "case.json"
+        assert metadata_file.exists()
+
+    def test_create_case_existing_metadata(self, fs):
         """Test creating a case when case.json already exists."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            # Create the directory and metadata file
-            case_dir = Path(tmpdir) / "1234"
-            case_dir.mkdir()
-            metadata_file = case_dir / "case.json"
-            metadata_file.write_text(
-                json.dumps(
-                    {
-                        "title": "Original Case",
-                        "desc": "Original description",
-                        "sf": "1234",
-                        "lp": "",
-                    }
-                )
-            )
+        fs.create_dir("/cases")
 
-            repo = CaseRepo(tmpdir)
-            result = repo.create_case(
-                name="[1234] New Test Case",
-                lp="",
-                description="New description",
-            )
+        # Create the directory and metadata file
+        case_dir = Path("/cases/1234")
+        fs.create_dir(case_dir)
+        metadata_file = case_dir / "case.json"
+        fs.create_file(
+            metadata_file,
+            contents=json.dumps(
+                {
+                    "title": "Original Case",
+                    "desc": "Original description",
+                    "sf": "1234",
+                    "lp": "",
+                }
+            ),
+        )
 
-            # Should fail - don't overwrite
-            assert result is False
+        repo = CaseRepo("/cases")
+        result = repo.create_case(
+            name="[1234] New Test Case",
+            lp="",
+            description="New description",
+        )
 
-            # Verify original metadata is unchanged
-            with metadata_file.open("r") as f:
-                data = json.load(f)
-            assert data["title"] == "Original Case"
+        # Should fail - don't overwrite
+        assert result is False
+
+        # Verify original metadata is unchanged
+        with metadata_file.open("r") as f:
+            data = json.load(f)
+        assert data["title"] == "Original Case"
 
     def test_title_regex_pattern_valid(self):
         """Test TITLE_RE regex with valid patterns."""

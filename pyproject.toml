@@ -52,6 +52,7 @@ dev = [
     "pytest-textual-snapshot>=1.0.0",
     "hypothesis>=6.0.0",
     "pytest-mock>=3.15.1",
+    "pyfakefs>=5.0.0",
 ]
 
 [tool.pytest.ini_options]
