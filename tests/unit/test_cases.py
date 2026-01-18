@@ -184,7 +184,7 @@ class TestCaseRepo:
             assert case.path == case_dir
 
     def test_case_preview(self):
-        """Test case_preview method."""
+        """Test Case.preview property."""
         with tempfile.TemporaryDirectory() as tmpdir:
             case_dir = Path(tmpdir) / "1234"
             case_dir.mkdir()
@@ -201,7 +201,8 @@ class TestCaseRepo:
             )
 
             repo = CaseRepo(tmpdir)
-            preview = repo.case_preview(str(case_dir))
+            case = next(repo.cases)
+            preview = case.preview
 
             assert "[1234]" in preview
             assert "Test Case" in preview

@@ -1,0 +1,6 @@
+{
+    "title": "High CPU usage by snapd service",
+    "desc": "Customer observes snapd consuming 100% CPU continuously. System becomes unresponsive. Issue started after installing multiple snaps. Killing snapd temporarily resolves the issue but it returns on next snap operation.",
+    "sf": "10003",
+    "lp": "2089456"
+}

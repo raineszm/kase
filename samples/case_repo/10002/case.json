@@ -1,0 +1,6 @@
+{
+    "title": "Network interface not detected after reboot",
+    "desc": "After a routine reboot, the primary network interface (eth0) is no longer detected by the system. lspci shows the hardware is present but no driver is loaded.",
+    "sf": "10002",
+    "lp": ""
+}

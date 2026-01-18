@@ -16,11 +16,20 @@ class Case(BaseModel):
     sf: str
     lp: str = ""
 
-    def write_metadata(self) -> None:
+    def write_metadata(self, clobber: bool = False) -> bool:
+        # Check if case.json already exists - don't overwrite
         metadata = self.model_dump()
         path = metadata.pop("path")
-        with (path / "case.json").open("w") as f:
+
+        metadata_file = path / "case.json"
+        if metadata_file.exists() and not clobber:
+            return False
+        # Create directory if it doesn't exist
+        if not path.exists():
+            path.mkdir(parents=True, exist_ok=True)
+        with metadata_file.open("w") as f:
             json.dump(metadata, f, indent=4)
+        return True
 
     @classmethod
     def from_folder(cls, folder: Path) -> "Case":
@@ -37,22 +46,6 @@ class Case(BaseModel):
             {desc}
             """
         ).format(sf=self.sf, title=self.title, desc=self.desc)
-
-    @property
-    def title(self) -> str:
-        return self.title
-
-    @property
-    def description(self) -> str:
-        return self.desc
-
-    @property
-    def source_file(self) -> str:
-        return self.sf
-
-    @property
-    def link(self) -> str:
-        return self.lp
 
 
 class CaseRepo:
@@ -92,12 +85,4 @@ class CaseRepo:
             title=title,
             desc=description,
         )
-        # Check if case.json already exists - don't overwrite
-        metadata_file = path / "case.json"
-        if metadata_file.exists():
-            return False
-        # Create directory if it doesn't exist
-        if not path.exists():
-            path.mkdir()
-        case.write_metadata()
-        return True
+        return case.write_metadata(clobber=False)

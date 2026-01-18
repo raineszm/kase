@@ -1,14 +1,19 @@
 import importlib.metadata
 import textwrap
+from pathlib import Path
 from typing import Annotated
 
 import typer
+from rich.console import Console
+
+from kase.tui.importer import ImporterApp
 
 from .tui.init import InitApp
 from .tui.query import QueryApp
 
 DEFAULT_CASE_DIR = "~/cases"
 
+console = Console()
 
 main = typer.Typer()
 
@@ -74,6 +79,57 @@ def punch(
     if len(title) > max_length:
         title = title[:max_length] + "..."
     print(f"[{case.sf}] {title}")
+
+
+@main.command(name="import")
+def import_case(
+    csv_file: Annotated[
+        Path,
+        typer.Argument(
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            help="Path to the CSV file containing case data.",
+        ),
+    ],
+    initial_prompt: Annotated[
+        str,
+        typer.Argument(
+            help="Initial prompt for the fuzzy finder.",
+        ),
+    ] = "",
+    case_dir: Annotated[
+        str,
+        typer.Option(
+            help="Directory containing case files."
+            "Defaults to $CASE_DIR environment variable or ~/cases",
+            envvar="CASE_DIR",
+        ),
+    ] = DEFAULT_CASE_DIR,
+):
+    app = ImporterApp(
+        case_dir=case_dir,
+        csv_file=csv_file,
+        initial_prompt=initial_prompt,
+    )
+    if cases := app.run():
+        for case in cases:
+            metadata_file = case.path / "case.json"
+            case_exists = metadata_file.exists()
+            if case_exists:
+                console.print(
+                    f"[yellow]{case.sf} already exists at {metadata_file}.[/]"
+                )
+                if not typer.confirm(
+                    f"Overwrite case.json for {case.sf}?", default=False
+                ):
+                    console.print(f"[italic yellow]Skipping {case.sf}.[/]")
+                    continue
+                console.print(f"[bold magenta]Overwriting {case.sf}...[/]")
+                case.write_metadata(clobber=True)
+                continue
+            console.print(f"[bold green]Creating {case.sf}...[/]")
+            case.write_metadata()
 
 
 @main.command()

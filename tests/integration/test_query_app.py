@@ -31,7 +31,7 @@ class TestQueryApp:
             assert app.query_one(Footer) is not None
 
     def test_case_selected_event_exits_app(self, mocker, monkeypatch, tmp_path):
-        """Ensure the CaseSelected message results in the app exiting with a path."""
+        """Ensure the CaseSelected message results in the app exiting with a case."""
         app = QueryApp(case_dir=tmp_path.as_posix())
         captured = {}
 
@@ -43,11 +43,11 @@ class TestQueryApp:
 
         case_path = tmp_path / "chosen_case"
         case_path.mkdir()
-        mock = mocker.MagicMock()
-        mock.path = case_path
-        event = CaseSelector.CaseSelected(mock)
+        mock_case = mocker.MagicMock()
+        mock_case.path = case_path
+        event = CaseSelector.CaseSelected(mock_case)
 
         app.action_select_row(event)
 
-        assert captured["result"] == str(case_path)
+        assert captured["result"] == mock_case
         assert captured["return_code"] == 0

@@ -59,7 +59,9 @@ class TestCLI:
     def test_query_command_with_result(self, mock_query_app):
         """Test query command prints result when returned."""
         mock_app_instance = MagicMock()
-        mock_app_instance.run.return_value = "/path/to/case"
+        mock_case = MagicMock()
+        mock_case.path = "/path/to/case"
+        mock_app_instance.run.return_value = mock_case
         mock_query_app.return_value = mock_app_instance
 
         result = runner.invoke(main, ["query"])
@@ -117,3 +119,74 @@ class TestCLI:
 
         assert result.exit_code == 0
         mock_query_app.assert_called_once()
+
+    @patch("kase.cli.ImporterApp")
+    def test_import_command_creates_new_case(self, mock_importer_app, tmp_path):
+        """Test import command writes metadata when case is new."""
+        csv_file = tmp_path / "cases.csv"
+        csv_file.write_text("")
+        case = MagicMock()
+        case.sf = "12345"
+        case.path = tmp_path / "12345"
+        case.write_metadata = MagicMock()
+
+        mock_app_instance = MagicMock()
+        mock_app_instance.run.return_value = [case]
+        mock_importer_app.return_value = mock_app_instance
+
+        result = runner.invoke(main, ["import", str(csv_file)])
+
+        assert result.exit_code == 0
+        assert "Creating 12345" in result.stdout
+        case.write_metadata.assert_called_once_with()
+
+    @patch("kase.cli.ImporterApp")
+    def test_import_command_skips_when_user_declines_overwrite(
+        self, mock_importer_app, tmp_path
+    ):
+        """Test import command warns and skips when decline overwrite."""
+        csv_file = tmp_path / "cases.csv"
+        csv_file.write_text("")
+        metadata_dir = tmp_path / "12345"
+        metadata_dir.mkdir()
+        (metadata_dir / "case.json").write_text("{}")
+        case = MagicMock()
+        case.sf = "12345"
+        case.path = metadata_dir
+        case.write_metadata = MagicMock()
+
+        mock_app_instance = MagicMock()
+        mock_app_instance.run.return_value = [case]
+        mock_importer_app.return_value = mock_app_instance
+
+        result = runner.invoke(main, ["import", str(csv_file)], input="n\n")
+
+        assert result.exit_code == 0
+        assert "already exists" in result.stdout
+        assert "Skipping 12345" in result.stdout
+        case.write_metadata.assert_not_called()
+
+    @patch("kase.cli.ImporterApp")
+    def test_import_command_overwrites_when_confirmed(
+        self, mock_importer_app, tmp_path
+    ):
+        """Test import command overwrites metadata when confirmed."""
+        csv_file = tmp_path / "cases.csv"
+        csv_file.write_text("")
+        metadata_dir = tmp_path / "12345"
+        metadata_dir.mkdir()
+        (metadata_dir / "case.json").write_text("{}")
+        case = MagicMock()
+        case.sf = "12345"
+        case.path = metadata_dir
+        case.write_metadata = MagicMock()
+
+        mock_app_instance = MagicMock()
+        mock_app_instance.run.return_value = [case]
+        mock_importer_app.return_value = mock_app_instance
+
+        result = runner.invoke(main, ["import", str(csv_file)], input="y\n")
+
+        assert result.exit_code == 0
+        assert "Overwriting 12345" in result.stdout
+        case.write_metadata.assert_called_once_with(clobber=True)
