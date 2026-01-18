@@ -16,7 +16,7 @@ class Case(BaseModel):
     sf: str
     lp: str = ""
 
-    def write_metadata(self, clobber=False) -> bool:
+    def write_metadata(self, clobber: bool = False) -> bool:
         # Check if case.json already exists - don't overwrite
         metadata = self.model_dump()
         path = metadata.pop("path")
