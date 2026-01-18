@@ -223,10 +223,11 @@ class CaseSelector(Widget):
             # Keep the current column if possible, otherwise default to the first column
             column_index = (
                 table.cursor_coordinate.column
-                if table.column_count and table.cursor_coordinate is not None
+                if len(table.columns) > 0 and table.cursor_coordinate is not None
                 else 0
             )
             table.move_cursor(row=row_index, column=column_index)
+
     def check_action(self, action: str, parameters: object) -> bool | None:
         if action == "toggle_mark":
             return self.multiselect_enabled
