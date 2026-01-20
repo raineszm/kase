@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/snapcore/snapcraft/master/schema/snapcraft.json
 name: kase
 base: core24
-version: "0.1.0"
+version: "0.2.0"
 source-code: https://github.com/raineszm/kase.git
 issues: https://github.com/raineszm/kase/issues
 contact: dev@zmraines.com
@@ -20,6 +20,7 @@ description: |
   - `kase query` - opens the fuzzy finder and returns the selected case
   - `kase shell` - outputs a shell function that allows jumping to cases with
                   the fuzzy finder.
+  - `kase import` - import cases from a csv
 
 grade: devel
 confinement: strict
