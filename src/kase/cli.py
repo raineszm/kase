@@ -174,7 +174,7 @@ def shell(
         textwrap.dedent(
             f"""
         {jump_cmd}() {{
-            dir=$(\\kase query) && cd "$dir"
+            dir=$(\\kase query "$@") && cd "$dir"
         }}
         """
         )
