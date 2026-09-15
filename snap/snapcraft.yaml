@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/snapcore/snapcraft/master/schema/snapcraft.json
 name: kase
 base: core24
-version: "0.2.0"
+version: "0.2.1"
 source-code: https://github.com/raineszm/kase.git
 issues: https://github.com/raineszm/kase/issues
 contact: dev@zmraines.com

@@ -1,3 +1,0 @@
-kind: Fixed
-body: TUI apps (query, punch, import, init) now render at full terminal size when stdout is captured, e.g. `dir=$(kase query)` in the `jk` shell function. Textual detects terminal size via stdout, which is a pipe under command substitution, causing an 80x24 fallback; the size is now taken from /dev/tty.
-time: 2026-09-15T12:30:00.000000-05:00
