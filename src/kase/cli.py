@@ -1,10 +1,13 @@
 import importlib.metadata
+import os
+import sys
 import textwrap
 from pathlib import Path
 from typing import Annotated
 
 import typer
 from rich.console import Console
+from textual.app import App
 
 from kase.tui.importer import ImporterApp
 
@@ -16,6 +19,31 @@ DEFAULT_CASE_DIR = "~/cases"
 console = Console()
 
 main = typer.Typer()
+
+
+def run_tui[T](app: App[T]) -> T | None:
+    """Run a TUI app, sizing from /dev/tty when stdout is captured."""
+    backup: dict[str, str | None] = {}
+    if not sys.stdout.isatty():
+        try:
+            with open("/dev/tty") as tty:
+                columns, lines = os.get_terminal_size(tty.fileno())
+        except OSError:
+            pass
+        else:
+            # Textual sizes via stdout, which is a pipe under command
+            # substitution; shutil.get_terminal_size prefers COLUMNS/LINES.
+            backup = {name: os.environ.get(name) for name in ("COLUMNS", "LINES")}
+            os.environ["COLUMNS"] = str(columns)
+            os.environ["LINES"] = str(lines)
+    try:
+        return app.run()
+    finally:
+        for name, value in backup.items():
+            if value is None:
+                os.environ.pop(name, None)
+            else:
+                os.environ[name] = value
 
 
 @main.command()
@@ -43,7 +71,7 @@ def query(
     """
 
     app = QueryApp(initial_prompt=initial_prompt, case_dir=case_dir)
-    case = app.run()
+    case = run_tui(app)
     if case is not None:
         print(str(case.path))
 
@@ -72,7 +100,7 @@ def punch(
     ] = 50,
 ):
     app = QueryApp(initial_prompt=initial_prompt, case_dir=case_dir)
-    case = app.run()
+    case = run_tui(app)
     if case is None:
         return
     title = case.title
@@ -112,7 +140,7 @@ def import_case(
         csv_file=csv_file,
         initial_prompt=initial_prompt,
     )
-    if cases := app.run():
+    if cases := run_tui(app):
         for case in cases:
             metadata_file = case.path / "case.json"
             case_exists = metadata_file.exists()
@@ -149,7 +177,7 @@ def init(
     Creates the directory if it does not exist.
     """
     app = InitApp(case_dir)
-    if result := app.run():
+    if result := run_tui(app):
         print(result)
 
 
