@@ -217,7 +217,7 @@ class CaseSelector(Widget):
             try:
                 row_index = table.get_row_index(selected_key)
             except KeyError:
-                # The previously selected case is no longer present (e.g. excluded/filtered out)
+                # Previously selected case no longer present (excluded/filtered)
                 return
 
             # Keep the current column if possible, otherwise default to the first column

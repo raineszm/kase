@@ -39,9 +39,8 @@ class SalesforceCSV:
             else:
                 normalized[column] = sanitized
         if missing_values:
-            raise ValueError(
-                f"Row {line_number} is missing value(s) for: {', '.join(missing_values)}"
-            )
+            missing = ", ".join(missing_values)
+            raise ValueError(f"Row {line_number} is missing value(s) for: {missing}")
         return normalized
 
     def cases(self) -> Iterable[Case]:
