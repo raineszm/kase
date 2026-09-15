@@ -32,7 +32,7 @@ class Case(BaseModel):
         return True
 
     @classmethod
-    def from_folder(cls, folder: Path) -> "Case":
+    def from_folder(cls, folder: Path) -> Case:
         with (folder / "case.json").open("r") as f:
             data = json.load(f)
             return cls(path=folder, **data)
