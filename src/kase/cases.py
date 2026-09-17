@@ -56,7 +56,11 @@ class CaseRepo:
 
     @property
     def metadata(self) -> list[Path]:
-        return [Path(f) for f in glob(f"{self.case_dir}/*/case.json")]
+        return sorted(
+            (Path(f) for f in glob(f"{self.case_dir}/*/case.json")),
+            key=lambda p: p.stat().st_ctime,
+            reverse=True,
+        )
 
     @property
     def cases(self) -> Iterable[Case]:

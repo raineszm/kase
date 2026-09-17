@@ -158,6 +158,50 @@ class TestCaseRepo:
         assert case.lp == "LP#5678"
         assert case.path == case_dir
 
+    def test_cases_property_sorts_by_reverse_ctime(self, fs):
+        fs.create_dir("/cases")
+        fs.create_file(
+            "/cases/5678/case.json",
+            contents=json.dumps(
+                {
+                    "title": "Test Case B",
+                    "desc": "Test description B",
+                    "sf": "5678",
+                    "lp": "LP#5678",
+                }
+            ),
+        )
+        fs.create_file(
+            "/cases/1234/case.json",
+            contents=json.dumps(
+                {
+                    "title": "Test Case",
+                    "desc": "Test description",
+                    "sf": "1234",
+                    "lp": "LP#1234",
+                }
+            ),
+        )
+        fs.create_file(
+            "/cases/9101112/case.json",
+            contents=json.dumps(
+                {
+                    "title": "Test Case C",
+                    "desc": "Test description C",
+                    "sf": "9101112",
+                    "lp": "LP#9101112",
+                }
+            ),
+        )
+
+        repo = CaseRepo("/cases")
+        case_nos = [case.sf for case in repo.cases]
+        assert case_nos == [
+            "9101112",
+            "1234",
+            "5678",
+        ]
+
     def test_load_meta(self, fs):
         """Test _load_meta static method."""
         case_dir = Path("/cases/1234")
